@@ -49,6 +49,7 @@
         .toolbar button:nth-child(3) { background: #9b2c2c; }
         .toolbar button:nth-child(4) { background: #2563eb; }
         .toolbar button:nth-child(5) { background: #7c3aed; }
+        .toolbar button:nth-child(6) { background: #0f766e; }
         .toolbar button:hover { transform: translateY(-2px); filter: brightness(1.05); }
         .header-brand {
             background: #ffffff;
@@ -173,6 +174,14 @@
             transition: 0.1s;
             margin-bottom: 4px;
         }
+        .teacher-card.hl-card {
+            background: #dcfce7;
+            border-left-color: #16a34a;
+        }
+        .teacher-card.hi-card {
+            background: #fef9c3;
+            border-left-color: #ca8a04;
+        }
         .teacher-card:active { cursor: grabbing; }
         .teacher-card.dragging { opacity: 0.4; }
         .room-info {
@@ -238,6 +247,8 @@
         <button id="shareBtn">📤 Compartilhar</button>
         <button id="resetBtn">🔄 Restaurar original</button>
         <button id="refreshBtn">📋 Atualizar</button>
+        <button id="pdfMorningBtn">🖨️ PDF Manhã</button>
+        <button id="pdfAfternoonBtn">🖨️ PDF Tarde</button>
         <button id="pdfBtn">🖨️ Gerar PDF</button>
     </div>
     <div class="shift-tabs" id="shiftTabs"></div>
@@ -546,6 +557,38 @@
         navigator.clipboard.writeText(texto).then(() => alert("📋 Horário copiado!"));
     }
 
+    function normalizeTag(texto = "") {
+        return texto
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+    }
+
+    function getTeacherColorTag(teacherName = "") {
+        const normalized = normalizeTag(teacherName);
+        if (/\bhl\b/.test(normalized)) return "hl";
+        if (/\bhi\b/.test(normalized)) return "hi";
+        return "";
+    }
+
+    function getTeacherCardClass(teacherName = "") {
+        const tag = getTeacherColorTag(teacherName);
+        if (tag === "hl") return "hl-card";
+        if (tag === "hi") return "hi-card";
+        return "";
+    }
+
+    function getPrintCellStyle(teacherName = "") {
+        const tag = getTeacherColorTag(teacherName);
+        if (tag === "hl") return "background:#dcfce7;";
+        if (tag === "hi") return "background:#fef9c3;";
+        return "";
+    }
+
+    function buildPrintableTable(data, turmas, aulas, dia, titulo) {
+        let html = `
+            <section style="width:100%;">
     function buildPrintableTable(data, turmas, aulas, dia, titulo) {
         let html = `
             <section style="width:100%;">
@@ -571,6 +614,8 @@
                         const bgColor = getTeacherHighlightColor(cell.teacher);
                         const extraBg = bgColor ? ` background:${bgColor};` : "";
                         return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top;${extraBg}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
+                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top; ${getPrintCellStyle(cell.teacher)}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
+                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top;">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
                     }).join("")}
                 </tr>
             `;
@@ -582,6 +627,20 @@
 
     function montarFolhaPDF(dia) {
         return `
+    function gerarPDFImpressao(turno) {
+        const printSheet = document.getElementById("printSheet");
+        if (!printSheet) return;
+        const dia = activeDay;
+        const isMorning = turno === "manha";
+        const title = isMorning ? "🌅 MANHÃ" : "🌙 TARDE";
+        const data = isMorning ? morningData : afternoonData;
+        const turmas = isMorning ? TURMAS_MANHA : TURMAS_TARDE;
+        const aulas = isMorning ? MORNING_AULAS : AFTERNOON_AULAS;
+    function gerarPDFImpressao() {
+        const printSheet = document.getElementById("printSheet");
+        if (!printSheet) return;
+        const dia = activeDay;
+        printSheet.innerHTML = `
             <div style="display:flex; flex-direction:column; gap:10px;">
                 <img src="imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva"
                      style="max-height:80px; object-fit:contain;">
@@ -590,6 +649,10 @@
                 </h2>
                 <p style="margin:0; text-align:center; font-size:12px; color:#475569;">
                     Manhã sobre tarde para melhor visualização.
+                    Planilha individual (${title}) em A4 paisagem.
+                </p>
+                ${buildPrintableTable(data, turmas, aulas, dia, title)}
+                    Manhã e tarde na mesma folha (paisagem).
                 </p>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     ${buildPrintableTable(morningData, TURMAS_MANHA, MORNING_AULAS, dia, "🌅 MANHÃ")}
@@ -693,6 +756,8 @@
                 5º ano: 10h10 - 10h30
                 <br>
                 🖱️ <strong>DICA:</strong> Segure <kbd>Ctrl</kbd> (ou <kbd>Cmd</kbd>) enquanto arrasta para <strong>duplicar</strong> o professor (cópia em vez de mover).
+                <br>
+                🎨 <strong>Cores automáticas:</strong> HL = verde claro | HI = amarelo.
             `;
         } else {
             legendDiv.innerHTML = `
@@ -703,6 +768,8 @@
                 4º e 5º anos: 16:00 - 16:20
                 <br>
                 🖱️ <strong>DICA:</strong> Segure <kbd>Ctrl</kbd> (ou <kbd>Cmd</kbd>) enquanto arrasta para <strong>duplicar</strong> o professor (cópia em vez de mover).
+                <br>
+                🎨 <strong>Cores automáticas:</strong> HL = verde claro | HI = amarelo.
             `;
         }
     }
@@ -850,6 +917,8 @@
 
                 const card = document.createElement("div");
                 card.className = "teacher-card";
+                const dynamicClass = getTeacherCardClass(teacherFull);
+                if (dynamicClass) card.classList.add(dynamicClass);
                 card.setAttribute("draggable", "true");
                 card.innerText = teacherAbrev;
                 card.title = `${teacherFull} (${room})\nClique para editar. Arraste para outra célula. Ctrl+arrastar para copiar.`;
@@ -963,6 +1032,9 @@
             gerarPDFImpressao();
             gerarPDFCompartilhavel();
         };
+        document.getElementById("pdfMorningBtn").onclick = () => gerarPDFImpressao("manha");
+        document.getElementById("pdfAfternoonBtn").onclick = () => gerarPDFImpressao("tarde");
+        document.getElementById("pdfBtn").onclick = gerarPDFImpressao;
     }
 
     function init() {
