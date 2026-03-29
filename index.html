@@ -247,6 +247,7 @@
         <button id="refreshBtn">📋 Atualizar</button>
         <button id="pdfMorningBtn">🖨️ PDF Manhã</button>
         <button id="pdfAfternoonBtn">🖨️ PDF Tarde</button>
+        <button id="pdfBtn">🖨️ Gerar PDF</button>
     </div>
     <div class="shift-tabs" id="shiftTabs"></div>
     <div class="day-tabs" id="dayTabs"></div>
@@ -585,6 +586,9 @@
     function buildPrintableTable(data, turmas, aulas, dia, titulo) {
         let html = `
             <section style="width:100%;">
+    function buildPrintableTable(data, turmas, aulas, dia, titulo) {
+        let html = `
+            <section style="width:49%;">
                 <h3 style="margin:0 0 8px; text-align:center; color:#1e3a5f;">${titulo}</h3>
                 <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:10px;">
                     <thead>
@@ -605,6 +609,7 @@
                     ${turmas.map((_, t) => {
                         const cell = data[dia][a][t];
                         return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top; ${getPrintCellStyle(cell.teacher)}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
+                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top;">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
                     }).join("")}
                 </tr>
             `;
@@ -623,6 +628,10 @@
         const data = isMorning ? morningData : afternoonData;
         const turmas = isMorning ? TURMAS_MANHA : TURMAS_TARDE;
         const aulas = isMorning ? MORNING_AULAS : AFTERNOON_AULAS;
+    function gerarPDFImpressao() {
+        const printSheet = document.getElementById("printSheet");
+        if (!printSheet) return;
+        const dia = activeDay;
         printSheet.innerHTML = `
             <div style="display:flex; flex-direction:column; gap:10px;">
                 <img src="imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva"
@@ -634,6 +643,12 @@
                     Planilha individual (${title}) em A4 paisagem.
                 </p>
                 ${buildPrintableTable(data, turmas, aulas, dia, title)}
+                    Manhã e tarde na mesma folha (paisagem).
+                </p>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                    ${buildPrintableTable(morningData, TURMAS_MANHA, MORNING_AULAS, dia, "🌅 MANHÃ")}
+                    ${buildPrintableTable(afternoonData, TURMAS_TARDE, AFTERNOON_AULAS, dia, "🌙 TARDE")}
+                </div>
             </div>
         `;
 
@@ -940,6 +955,7 @@
         document.getElementById("refreshBtn").onclick = () => { renderGrid(); saveToLocalStorage(); };
         document.getElementById("pdfMorningBtn").onclick = () => gerarPDFImpressao("manha");
         document.getElementById("pdfAfternoonBtn").onclick = () => gerarPDFImpressao("tarde");
+        document.getElementById("pdfBtn").onclick = gerarPDFImpressao;
     }
 
     function init() {
