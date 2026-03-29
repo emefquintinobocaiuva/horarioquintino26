@@ -46,6 +46,7 @@
             gap: 6px;
         }
         .toolbar button:nth-child(2) { background: #2b6e4f; }
+        .toolbar button:nth-child(3) { background: #2563eb; }
         .toolbar button:nth-child(3) { background: #9b2c2c; }
         .toolbar button:nth-child(4) { background: #2563eb; }
         .toolbar button:nth-child(5) { background: #7c3aed; }
@@ -213,6 +214,16 @@
         .print-sheet {
             display: none;
         }
+        .print-day-section {
+            page-break-after: always;
+            break-after: page;
+            margin-bottom: 8mm;
+        }
+        .print-day-section:last-child {
+            page-break-after: auto;
+            break-after: auto;
+            margin-bottom: 0;
+        }
         @media print {
             @page {
                 size: A4 landscape;
@@ -244,6 +255,8 @@
     </div>
     <div class="toolbar">
         <button id="saveBtn">💾 Salvar</button>
+        <button id="printBtn">🖨️ Imprimir</button>
+        <button id="pdfBtn">📄 Gerar PDF</button>
         <button id="shareBtn">📤 Compartilhar</button>
         <button id="resetBtn">🔄 Restaurar original</button>
         <button id="refreshBtn">📋 Atualizar</button>
@@ -548,15 +561,18 @@
         alert("✅ Horários restaurados para os dados originais (2026).");
     }
 
-    function shareSchedule() {
-        let texto = `📅 HORÁRIO ESCOLAR 2026 - EMEF QUINTINO BOCAIÚVA\n\n`;
-        texto += `=== MANHÃ ===\n`;
-        texto += gerarTextoShift(morningData, TURMAS_MANHA, MORNING_AULAS);
-        texto += `\n=== TARDE ===\n`;
-        texto += gerarTextoShift(afternoonData, TURMAS_TARDE, AFTERNOON_AULAS);
-        navigator.clipboard.writeText(texto).then(() => alert("📋 Horário copiado!"));
+    function normalizeTag(texto = "") {
+        return texto
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
     }
 
+    function getTeacherColorTag(teacherName = "") {
+        const normalized = normalizeTag(teacherName);
+        if (/^hl($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hl")) return "hl";
+        if (/^hi($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hi")) return "hi";
     function normalizeTag(texto = "") {
         return texto
             .toLowerCase()
@@ -611,6 +627,10 @@
                     </td>
                     ${turmas.map((_, t) => {
                         const cell = data[dia][a][t];
+                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top; ${getPrintCellStyle(cell.teacher)}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
+                    }).join("")}
+                </tr>
+            `;
                         const bgColor = getTeacherHighlightColor(cell.teacher);
                         const extraBg = bgColor ? ` background:${bgColor};` : "";
                         return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top;${extraBg}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
@@ -726,7 +746,47 @@
                 txt += linha + "\n";
             }
         }
-        return txt;
+
+        html += `</tbody></table></section>`;
+        return html;
+    }
+
+    function buildWeeklyPrintableSections(turno) {
+        const isMorning = turno === "manha";
+        const title = isMorning ? "🌅 MANHÃ" : "🌙 TARDE";
+        const data = isMorning ? morningData : afternoonData;
+        const turmas = isMorning ? TURMAS_MANHA : TURMAS_TARDE;
+        const aulas = isMorning ? MORNING_AULAS : AFTERNOON_AULAS;
+        return DIAS.map(dia => `
+            <section class="print-day-section">
+                <h2 style="margin:0; text-align:center; color:#1e3a5f;">
+                    Horário Escolar 2026 · ${title}
+                </h2>
+                <p style="margin:2px 0 10px; text-align:center; font-size:12px; color:#475569;">
+                    ${dia} · Documento semanal (${title}) em A4 paisagem
+                </p>
+                ${buildPrintableTable(data, turmas, aulas, dia, `${title} · ${dia.toUpperCase()}`)}
+            </section>
+        `).join("");
+    }
+
+    function montarDocumentoImpressao(turno, modo) {
+        const printSheet = document.getElementById("printSheet");
+        if (!printSheet) return;
+        const isMorning = turno === "manha";
+        const title = isMorning ? "🌅 MANHÃ" : "🌙 TARDE";
+        printSheet.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <img src="imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva"
+                     style="max-height:80px; object-fit:contain;">
+                <p style="margin:0; text-align:center; font-size:12px; color:#475569;">
+                    ${modo === "pdf" ? "Gerar PDF" : "Imprimir"} · Todos os dias da semana (${title}) em A4 paisagem.
+                </p>
+                ${buildWeeklyPrintableSections(turno)}
+            </div>
+        `;
+
+        setTimeout(() => window.print(), 50);
     }
 
     function getTeacherHighlightType(teacherName = "") {
@@ -1025,6 +1085,8 @@
 
     function bindButtons() {
         document.getElementById("saveBtn").onclick = () => { saveToLocalStorage(); alert("✅ Alterações salvas!"); };
+        document.getElementById("printBtn").onclick = () => montarDocumentoImpressao(activeShift, "imprimir");
+        document.getElementById("pdfBtn").onclick = () => montarDocumentoImpressao(activeShift, "pdf");
         document.getElementById("shareBtn").onclick = shareSchedule;
         document.getElementById("resetBtn").onclick = resetToOriginal;
         document.getElementById("refreshBtn").onclick = () => { renderGrid(); saveToLocalStorage(); };
