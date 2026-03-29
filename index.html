@@ -156,6 +156,12 @@
             min-height: 70px;
             cursor: pointer;
         }
+        .schedule-cell.hl-cell {
+            background: #f0fdf4;
+        }
+        .schedule-cell.hi-cell {
+            background: #fffbeb;
+        }
         .schedule-cell.hl-cell { background: #dcfce7; }
         .schedule-cell.hi-cell { background: #fef9c3; }
         .schedule-cell.drag-over {
@@ -732,19 +738,60 @@
         }
     }
 
-    function gerarTextoShift(data, turmas, aulas) {
-        let txt = "";
-        for (let dia of DIAS) {
-            txt += `\n${dia.toUpperCase()}:\n`;
-            txt += `Período\t` + turmas.join("\t") + "\n";
-            for (let a = 0; a < aulas.length; a++) {
-                let linha = `${aulas[a].label} (${aulas[a].horario})\t`;
-                for (let t = 0; t < turmas.length; t++) {
-                    let cell = data[dia][a][t];
-                    linha += `${cell.teacher} (${cell.room})\t`;
-                }
-                txt += linha + "\n";
-            }
+    function getTeacherColorTag(teacherName = "") {
+        const normalized = normalizeTag(teacherName);
+        if (/^hl($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hl")) return "hl";
+        if (/^hi($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hi")) return "hi";
+        return "";
+    }
+
+    function getTeacherCardClass(teacherName = "") {
+        const tag = getTeacherColorTag(teacherName);
+        if (tag === "hl") return "hl-card";
+        if (tag === "hi") return "hi-card";
+        return "";
+    }
+
+    function getTeacherCellClass(teacherName = "") {
+        const tag = getTeacherColorTag(teacherName);
+        if (tag === "hl") return "hl-cell";
+        if (tag === "hi") return "hi-cell";
+        return "";
+    }
+
+    function getPrintCellStyle(teacherName = "") {
+        const tag = getTeacherColorTag(teacherName);
+        if (tag === "hl") return "background:#dcfce7;";
+        if (tag === "hi") return "background:#fef9c3;";
+        return "";
+    }
+
+    function buildPrintableTable(data, turmas, aulas, dia, titulo) {
+        let html = `
+            <section style="width:100%;">
+                <h3 style="margin:0 0 8px; text-align:center; color:#1e3a5f;">${titulo}</h3>
+                <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:10px;">
+                    <thead>
+                        <tr>
+                            <th style="border:1px solid #94a3b8; padding:4px; background:#e2e8f0;">Horário</th>
+                            ${turmas.map(t => `<th style="border:1px solid #94a3b8; padding:4px; background:#e2e8f0;">${t}</th>`).join("")}
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        for (let a = 0; a < aulas.length; a++) {
+            html += `
+                <tr>
+                    <td style="border:1px solid #cbd5e1; padding:3px; background:#f8fafc; font-weight:700;">
+                        ${aulas[a].label}<br>${aulas[a].horario}
+                    </td>
+                    ${turmas.map((_, t) => {
+                        const cell = data[dia][a][t];
+                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top; ${getPrintCellStyle(cell.teacher)}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
+                    }).join("")}
+                </tr>
+            `;
         }
 
         html += `</tbody></table></section>`;
@@ -970,6 +1017,8 @@
                 const teacherFull = cellData.teacher;
                 const teacherAbrev = abrevNome(teacherFull);
                 const room = cellData.room;
+                const cellClass = getTeacherCellClass(teacherFull);
+                if (cellClass) cell.classList.add(cellClass);
                 const highlightType = getTeacherHighlightType(teacherFull);
                 if (highlightType) {
                     cell.classList.add(`${highlightType}-cell`);
@@ -1084,6 +1133,14 @@
     }
 
     function bindButtons() {
+        const toolbar = document.querySelector(".toolbar");
+        if (toolbar) {
+            toolbar.innerHTML = `
+                <button id="saveBtn">💾 Salvar</button>
+                <button id="printBtn">🖨️ Imprimir</button>
+                <button id="pdfBtn">📄 Gerar PDF</button>
+            `;
+        }
         document.getElementById("saveBtn").onclick = () => { saveToLocalStorage(); alert("✅ Alterações salvas!"); };
         document.getElementById("printBtn").onclick = () => montarDocumentoImpressao(activeShift, "imprimir");
         document.getElementById("pdfBtn").onclick = () => montarDocumentoImpressao(activeShift, "pdf");
