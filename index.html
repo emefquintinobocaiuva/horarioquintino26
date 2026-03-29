@@ -32,15 +32,19 @@
 
         /* Estilo da Grade */
         .schedule-grid {
-            display: grid; grid-template-columns: 90px repeat(16, minmax(60px, 1fr));
+            display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr));
             border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 30px;
         }
-        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; }
-        .schedule-cell { background: white; border: 0.5px solid #e2e8f0; padding: 4px; min-height: 55px; cursor: grab; position: relative; }
+        /* Células Editáveis com destaque visual */
+        .grid-header[contenteditable="true"], .time-slot[contenteditable="true"] { 
+            background: #f1f5f9; color: #1e3a5f; cursor: text; outline: none; border: 1px dashed #3b82f6;
+        }
+        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; min-height: 40px; }
+        
+        .schedule-cell { background: white; border: 0.5px solid #e2e8f0; padding: 4px; min-height: 60px; cursor: grab; position: relative; }
         .teacher-card { font-weight: bold; text-align: center; pointer-events: none; }
         .room-info { font-size: 0.55rem; color: #92400e; text-align: center; display: block; pointer-events: none; }
 
-        /* Cores Especiais */
         .cell-highlight { background-color: #bae6fd !important; }
         .cell-dimmed { opacity: 0.2; }
         .cell-hi { background-color: #fef08a !important; }
@@ -48,14 +52,13 @@
 
         .print-only { display: none; }
 
-        /* REGRAS DE IMPRESSÃO - PDF PAISAGEM COMPLETO */
         @media print {
             @page { size: A4 landscape; margin: 5mm; }
-            .toolbar, .shift-tabs, .day-tabs, .main-container > #scheduleGrid, .legend { display: none !important; }
+            .toolbar, .shift-tabs, .day-tabs, #scheduleGrid, .legend { display: none !important; }
             .print-only { display: block !important; }
             .print-day-title { font-size: 14px; font-weight: bold; margin: 15px 0 5px 0; text-align: left; color: #1e3a5f; border-bottom: 2px solid #1e3a5f; }
-            .schedule-grid { page-break-inside: avoid; margin-bottom: 20px; width: 100% !important; grid-template-columns: 80px repeat(16, 1fr) !important; }
-            .header-institucional { margin-bottom: 10px; }
+            .schedule-grid { page-break-inside: avoid; margin-bottom: 20px; width: 100% !important; grid-template-columns: 90px repeat(16, 1fr) !important; }
+            .grid-header[contenteditable="true"], .time-slot[contenteditable="true"] { border: 0.5px solid #cbd5e1; background: #f8fafc; }
             body { background: white; }
         }
 
@@ -65,7 +68,7 @@
 <body>
 
 <div class="header-institucional">
-    <img src="cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva">
+    <img src="https://raw.githubusercontent.com/emefquintinobocaiuva/horarioquintino26/main/imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva">
 </div>
 
 <div class="main-container">
@@ -73,16 +76,15 @@
         <div class="search-container">
             <input type="text" id="teacherSearch" class="search-input" placeholder="🔍 Buscar Professor...">
         </div>
-        <button id="saveBtn">💾 Salvar</button>
+        <button id="saveBtn">💾 Salvar Alterações</button>
         <button id="printBtn">🖨️ PDF Completo (Seg-Sex)</button>
-        <button id="resetBtn">🔄 Restaurar</button>
+        <button id="resetBtn">🔄 Restaurar Padrão</button>
     </div>
     
     <div class="shift-tabs" id="shiftTabs"></div>
     <div class="day-tabs" id="dayTabs"></div>
     
     <div id="scheduleGrid"></div>
-
     <div id="printArea" class="print-only"></div>
 
     <div class="legend" id="legendArea"></div>
@@ -90,11 +92,13 @@
 
 <script>
     const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
-    const MORNING_AULAS = [{label:"1ª", h:"7:10-8:00"}, {label:"2ª", h:"8:00-8:50"}, {label:"3ª", h:"8:50-10:00"}, {label:"4ª", h:"10:00-10:50"}, {label:"5ª", h:"10:50-11:40"}];
-    const AFTERNOON_AULAS = [{label:"1ª", h:"13:30-14:20"}, {label:"2ª", h:"14:20-15:10"}, {label:"3ª", h:"15:10-16:20"}, {label:"4ª", h:"16:20-17:10"}, {label:"5ª", h:"17:10-18:00"}];
     
-    let TURMAS_MANHA = ["1ºA","1ºB","1ºC","1ºD","1ºE","2ºA","2ºB","2ºC","3ºA","3ºB","4ºA","4ºB","4ºC","5ºA","5ºB","5ºC"];
-    let TURMAS_TARDE = ["1ºE","1ºF","1ºG","2ºD","2ºE","2ºF","2ºG","3ºD","3ºE","3ºF","4ºD","4ºE","4ºF","5ºD","5ºE","5ºF"];
+    // Agora os horários e nomes de turmas são arrays de objetos para permitir edição e salvamento
+    let aulas_manha = [{l:"1ª", h:"7:10-8:00"}, {l:"2ª", h:"8:00-8:50"}, {l:"3ª", h:"8:50-10:00"}, {l:"4ª", h:"10:00-10:50"}, {l:"5ª", h:"10:50-11:40"}];
+    let aulas_tarde = [{l:"1ª", h:"13:30-14:20"}, {l:"2ª", h:"14:20-15:10"}, {l:"3ª", h:"15:10-16:20"}, {l:"4ª", h:"16:20-17:10"}, {l:"5ª", h:"17:10-18:00"}];
+
+    let turmas_manha = ["1ºA","1ºB","1ºC","1ºD","1ºE","2ºA","2ºB","2ºC","3ºA","3ºB","4ºA","4ºB","4ºC","5ºA","5ºB","5ºC"];
+    let turmas_tarde = ["1ºE","1ºF","1ºG","2ºD","2ºE","2ºF","2ºG","3ºD","3ºE","3ºF","4ºD","4ºE","4ºF","5ºD","5ºE","5ºF"];
 
     let morningData, afternoonData;
     let activeShift = "manha";
@@ -108,50 +112,45 @@
                 d[dia] = Array(5).fill().map(() => Array(turmas.length).fill().map(() => ({ teacher: "Livre", room: "---" })));
             }); return d;
         };
-        morningData = criar(TURMAS_MANHA);
-        afternoonData = criar(TURMAS_TARDE);
+        morningData = criar(turmas_manha);
+        afternoonData = criar(turmas_tarde);
     }
 
-    // --- LÓGICA DE DRAG & DROP ---
     function onDragStart(e, aIdx, tIdx) {
         const data = activeShift === "manha" ? morningData : afternoonData;
         draggedData = { aIdx, tIdx, content: {...data[activeDay][aIdx][tIdx]}, isCopy: e.ctrlKey || e.metaKey };
-        e.dataTransfer.setData("text/plain", ""); // Necessário para Firefox
     }
 
     function onDrop(e, aIdx, tIdx) {
         e.preventDefault();
         const data = activeShift === "manha" ? morningData : afternoonData;
-        
         if (!draggedData) return;
-
-        // Se NÃO for cópia, limpa a origem
-        if (!draggedData.isCopy) {
-            data[activeDay][draggedData.aIdx][draggedData.tIdx] = { teacher: "Livre", room: "---" };
-        }
-        
-        // Aplica ao destino
+        if (!draggedData.isCopy) data[activeDay][draggedData.aIdx][draggedData.tIdx] = { teacher: "Livre", room: "---" };
         data[activeDay][aIdx][tIdx] = draggedData.content;
         renderAll();
     }
 
-    // --- RENDERIZAÇÃO ---
-    function createGridHTML(dia, isPrint = false) {
+    function createGridHTML(dia) {
         const data = activeShift === "manha" ? morningData : afternoonData;
-        const turmas = activeShift === "manha" ? TURMAS_MANHA : TURMAS_TARDE;
-        const aulas = activeShift === "manha" ? MORNING_AULAS : AFTERNOON_AULAS;
+        const turmasAtuais = activeShift === "manha" ? turmas_manha : turmas_tarde;
+        const aulasAtuais = activeShift === "manha" ? aulas_manha : aulas_tarde;
         
         let html = `<div class="schedule-grid">`;
         html += `<div class="grid-header">Horas</div>`;
-        turmas.forEach(t => html += `<div class="grid-header">${t}</div>`);
+        
+        // Renderiza Turmas Editáveis
+        turmasAtuais.forEach((t, i) => {
+            html += `<div class="grid-header" contenteditable="true" onblur="updateTurma(${i}, this.innerText)">${t}</div>`;
+        });
 
-        aulas.forEach((aula, aIdx) => {
-            html += `<div class="time-slot">${aula.label}<br>${aula.h}</div>`;
-            turmas.forEach((turma, tIdx) => {
+        aulasAtuais.forEach((aula, aIdx) => {
+            // Renderiza Horário Editável
+            html += `<div class="time-slot" contenteditable="true" onblur="updateAula(${aIdx}, this.innerText)">${aula.l}\n${aula.h}</div>`;
+            
+            turmasAtuais.forEach((turma, tIdx) => {
                 const cell = data[dia][aIdx][tIdx];
                 const prof = cell.teacher.toUpperCase();
                 let classes = "schedule-cell";
-                
                 if (searchTerm && prof !== "LIVRE") {
                     if (prof.includes(searchTerm.toUpperCase())) classes += " cell-highlight";
                     else classes += " cell-dimmed";
@@ -159,12 +158,7 @@
                 if (prof.includes("HI")) classes += " cell-hi";
                 if (prof.includes("HL")) classes += " cell-hl";
 
-                html += `<div class="${classes}" 
-                            draggable="true" 
-                            ondragstart="onDragStart(event, ${aIdx}, ${tIdx})"
-                            ondragover="event.preventDefault()"
-                            ondrop="onDrop(event, ${aIdx}, ${tIdx})"
-                            onclick="editCellManual(${aIdx}, ${tIdx})">
+                html += `<div class="${classes}" draggable="true" ondragstart="onDragStart(event, ${aIdx}, ${tIdx})" ondragover="event.preventDefault()" ondrop="onDrop(event, ${aIdx}, ${tIdx})" onclick="editCellManual(${aIdx}, ${tIdx})">
                             <div class="teacher-card">${cell.teacher}</div>
                             <div class="room-info">S: ${cell.room}</div>
                          </div>`;
@@ -174,13 +168,20 @@
         return html;
     }
 
-    function preparePrint() {
-        const printArea = document.getElementById("printArea");
-        printArea.innerHTML = `<h2>HORÁRIO ESCOLAR 2026 - PERÍODO ${activeShift.toUpperCase()}</h2>`;
-        DIAS.forEach(dia => {
-            printArea.innerHTML += `<div class="print-day-title">${dia.toUpperCase()}</div>`;
-            printArea.innerHTML += createGridHTML(dia, true);
-        });
+    function updateTurma(idx, val) {
+        if (activeShift === "manha") turmas_manha[idx] = val;
+        else turmas_tarde[idx] = val;
+    }
+
+    function updateAula(idx, val) {
+        let partes = val.split("\n");
+        if (activeShift === "manha") {
+            aulas_manha[idx].l = partes[0] || "";
+            aulas_manha[idx].h = partes[1] || "";
+        } else {
+            aulas_tarde[idx].l = partes[0] || "";
+            aulas_tarde[idx].h = partes[1] || "";
+        }
     }
 
     function editCellManual(aIdx, tIdx) {
@@ -194,28 +195,30 @@
     }
 
     function renderAll() {
-        // Abas
         document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => 
             `<button class="shift-tab ${activeShift===s?'active':''}" onclick="activeShift='${s}';renderAll()"> ${s==='manha'?'🌅 MANHÃ':'🌙 TARDE'}</button>`).join("");
-        
         document.getElementById("dayTabs").innerHTML = DIAS.map(d => 
             `<button class="day-tab ${activeDay===d?'active':''}" onclick="activeDay='${d}';renderAll()">${d}</button>`).join("");
-
-        // Grade Tela
         document.getElementById("scheduleGrid").innerHTML = createGridHTML(activeDay);
         
-        // Legenda e PDF
+        // Legenda
         const mLeg = `⏱️ <b>INTERVALOS MANHÃ:</b> 1º: 9:20-9:40 | 2º e 3º: 9:40-10:00 | 4º: 8:50-9:10 | 5º: 10:10-10:30`;
         const tLeg = `⏱️ <b>INTERVALOS TARDE:</b> 1º: 14:40-15:00 | 2º: 15:10-15:30 | 3º: 15:40-16:00 | 4º e 5º: 16:00-16:20`;
-        document.getElementById("legendArea").innerHTML = (activeShift === "manha" ? mLeg : tLeg) + `<br>🖱️ <b>Arrastar:</b> Mover | <b>Ctrl+Arrastar:</b> Copiar | <b>Clique:</b> Editar | <b>PDF:</b> Gera todos os dias.`;
-        
-        preparePrint();
+        document.getElementById("legendArea").innerHTML = (activeShift === "manha" ? mLeg : tLeg) + `<br><b>DICA:</b> Clique nos Nomes das Turmas ou nos Horários para editá-los diretamente!`;
+
+        // Prepara Impressão Completa
+        const printArea = document.getElementById("printArea");
+        printArea.innerHTML = `<h2>HORÁRIO ESCOLAR - PERÍODO ${activeShift.toUpperCase()}</h2>`;
+        DIAS.forEach(dia => {
+            printArea.innerHTML += `<div class="print-day-title">${dia.toUpperCase()}</div>`;
+            printArea.innerHTML += createGridHTML(dia);
+        });
     }
 
     document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; renderAll(); };
     document.getElementById("printBtn").onclick = () => window.print();
-    document.getElementById("saveBtn").onclick = () => alert("Salvo!");
-    document.getElementById("resetBtn").onclick = () => { if(confirm("Resetar?")) { initData(); renderAll(); } };
+    document.getElementById("saveBtn").onclick = () => alert("As alterações de turmas, horários e professores foram aplicadas na visualização atual!");
+    document.getElementById("resetBtn").onclick = () => { if(confirm("Deseja restaurar os horários e nomes padrões?")) { window.location.reload(); } };
 
     initData();
     renderAll();
