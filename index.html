@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Horário Escolar 2026 · Manhã e Tarde</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            background: #eef2f8;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+            padding: 20px 16px 28px;
+            overflow-x: auto;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #dce5f0;
+        }
+        .toolbar button {
+            background: #1e3a5f;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .toolbar button:nth-child(2) { background: #2b6e4f; }
+        .toolbar button:nth-child(3) { background: #9b2c2c; }
+        .toolbar button:nth-child(4) { background: #2563eb; }
+        .toolbar button:hover { transform: translateY(-2px); filter: brightness(1.05); }
+
+        .shift-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 8px;
+        }
+        .shift-tab {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 8px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            color: #475569;
+            transition: 0.2s;
+        }
+        .shift-tab.active {
+            background: #1e3a5f;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .day-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .day-tab {
+            background: #f1f5f9;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #1e293b;
+        }
+        .day-tab.active {
+            background: #1e3a5f;
+            color: white;
+        }
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 120px repeat(16, minmax(95px, 1fr));
+            background: #fff;
+            border-radius: 20px;
+            overflow-x: auto;
+            border: 1px solid #e2edf2;
+            font-size: 0.75rem;
+        }
+        .grid-header {
+            background: #f1f5f9;
+            font-weight: 800;
+            text-align: center;
+            padding: 10px 4px;
+            border-bottom: 2px solid #cbd5e1;
+            border-right: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+            color: #0f2b3d;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .grid-header:hover {
+            background: #e2e8f0;
+        }
+        .time-slot {
+            background: #f8fafc;
+            font-weight: 600;
+            text-align: center;
+            padding: 10px 4px;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+            color: #334155;
+            line-height: 1.3;
+        }
+        .schedule-cell {
+            background: #ffffff;
+            border-bottom: 1px solid #e9eef3;
+            border-right: 1px solid #e9eef3;
+            padding: 6px;
+            transition: background 0.1s;
+            min-height: 70px;
+            cursor: pointer;
+        }
+        .schedule-cell.drag-over {
+            background: #e0f2fe;
+            box-shadow: inset 0 0 0 2px #0284c7;
+        }
+        .teacher-card {
+            background: #eef2ff;
+            border-left: 4px solid #3b82f6;
+            padding: 5px 4px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-align: center;
+            word-break: break-word;
+            cursor: grab;
+            transition: 0.1s;
+            margin-bottom: 4px;
+        }
+        .teacher-card:active { cursor: grabbing; }
+        .teacher-card.dragging { opacity: 0.4; }
+        .room-info {
+            font-size: 0.6rem;
+            color: #92400e;
+            background: #fffbeb;
+            border-radius: 20px;
+            padding: 2px 6px;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .legend {
+            font-size: 12px;
+            margin-top: 20px;
+            text-align: center;
+            color: #2c3e66;
+            background: #fef9e3;
+            padding: 12px 16px;
+            border-radius: 20px;
+            border-left: 6px solid #f59e0b;
+        }
+        @media (max-width: 1000px) {
+            .schedule-grid { font-size: 0.65rem; }
+            .grid-header, .time-slot { padding: 6px 2px; }
+        }
+    </style>
+</head>
+<body>
+<div class="main-container" id="app">
+    <div class="toolbar">
+        <button id="saveBtn">💾 Salvar</button>
+        <button id="shareBtn">📤 Compartilhar</button>
+        <button id="resetBtn">🔄 Restaurar original</button>
+        <button id="refreshBtn">📋 Atualizar</button>
+    </div>
+    <div class="shift-tabs" id="shiftTabs"></div>
+    <div class="day-tabs" id="dayTabs"></div>
+    <div id="scheduleGrid"></div>
+    <div class="legend" id="legendArea"></div>
+</div>
+
+<script>
+    // ==================== Mapeamento Professor -> Sala Padrão (Manhã) ====================
+    const TEACHER_ROOM_MAP = {
+        // Regentes
+        "Sônia": "Sala 1º A",
+        "Ivonete": "Sala 1º B",
+        "Jeangela": "Sala 1º C",
+        "Bruno": "Sala 1º D",
+        "Thaís": "Sala 1º E",
+        "Eliane": "Sala 2º A",
+        "Duda": "Sala 2º B",
+        "Andreza": "Sala 2º C",
+        "Claudete": "Sala 3º A",
+        "Natália": "Sala 3º B",
+        "Beth": "Sala 4º A",
+        "Erislene": "Sala 4º B",
+        "Rosângela": "Sala 4º C",
+        "Taty": "Sala 5º A",
+        "Daniele": "Sala 5º B",
+        "Cleo": "Sala 5º C",
+        // Especialistas
+        "Leno (Inglês)": "Sala Inglês",
+        "Rafael (Inglês)": "Sala Inglês",
+        "Cris (Arte)": "Ateliê",
+        "Gisele (Informática)": "Lab Info",
+        "Arthur (Ed. Física)": "Quadra",
+        "Gilberto (Ed. Física)": "Quadra",
+        "Thiago (Ed. Física)": "Quadra",
+        "Patrícia (Inglês)": "Sala Inglês"
+    };
+
+    // Função para obter sala padrão com base no nome do professor
+    function getDefaultRoom(teacherName) {
+        // Tenta encontrar exatamente no mapa
+        if (TEACHER_ROOM_MAP[teacherName]) return TEACHER_ROOM_MAP[teacherName];
+        // Se não, tenta encontrar por substring (ex: "Sônia" sozinho)
+        for (let [key, room] of Object.entries(TEACHER_ROOM_MAP)) {
+            if (teacherName.includes(key)) return room;
+        }
+        return "---";
+    }
+
+    // ==================== CONFIGURAÇÕES GLOBAIS ====================
+    const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+    
+    // AULAS para manhã e tarde (apenas 5, sem intervalo na grade)
+    const MORNING_AULAS = [
+        { id: "1aula", label: "1ª aula", horario: "7h10 - 8h" },
+        { id: "2aula", label: "2ª aula", horario: "8h - 8h50" },
+        { id: "3aula", label: "3ª aula", horario: "8h50 - 10h" },
+        { id: "4aula", label: "4ª aula", horario: "10h - 10h50" },
+        { id: "5aula", label: "5ª aula", horario: "10h50 - 11h40" }
+    ];
+    const AFTERNOON_AULAS = [
+        { id: "1aula", label: "1ª aula", horario: "13:30 - 14:20" },
+        { id: "2aula", label: "2ª aula", horario: "14:20 - 15:10" },
+        { id: "3aula", label: "3ª aula", horario: "15:10 - 16:20" },
+        { id: "4aula", label: "4ª aula", horario: "16:20 - 17:10" },
+        { id: "5aula", label: "5ª aula", horario: "17:10 - 18:00" }
+    ];
+
+    function getCurrentAulas() {
+        return activeShift === "manha" ? MORNING_AULAS : AFTERNOON_AULAS;
+    }
+
+    // Turmas da Manhã (editáveis)
+    let TURMAS_MANHA = [
+        "1º A", "1º B", "1º C", "1º D", "1º E",
+        "2º A", "2º B", "2º C",
+        "3º A", "3º B",
+        "4º A", "4º B", "4º C",
+        "5º A", "5º B", "5º C"
+    ];
+
+    // Professores regentes (homeroom)
+    const HOMEROOM_MANHA = {
+        "1º A": "Sônia",
+        "1º B": "Ivonete",
+        "1º C": "Jeangela",
+        "1º D": "Bruno",
+        "1º E": "Thaís",
+        "2º A": "Eliane",
+        "2º B": "Duda",
+        "2º C": "Andreza",
+        "3º A": "Claudete",
+        "3º B": "Natália",
+        "4º A": "Beth",
+        "4º B": "Erislene",
+        "4º C": "Rosângela",
+        "5º A": "Taty",
+        "5º B": "Daniele",
+        "5º C": "Cleo"
+    };
+
+    // Turmas da Tarde (editáveis)
+    let TURMAS_TARDE = [
+        "1º E", "1º F", "1º G",
+        "2º D", "2º E", "2º F", "2º G",
+        "3º D", "3º E", "3º F",
+        "4º D", "4º E", "4º F",
+        "5º D", "5º E", "5º F"
+    ];
+
+    function criarMatrizVazia(turmas, aulas) {
+        const data = {};
+        for (let dia of DIAS) {
+            data[dia] = Array(aulas.length).fill().map(() => Array(turmas.length).fill().map(() => ({ teacher: "Livre", room: "---" })));
+        }
+        return data;
+    }
+
+    function alocarTodos(data, dia, aulaId, professor, sala, aulas) {
+        const diaIdx = DIAS.indexOf(dia);
+        const aulaIdx = aulas.findIndex(a => a.id === aulaId);
+        if (diaIdx === -1 || aulaIdx === -1) return;
+        const turmasCount = data[dia][aulaIdx].length;
+        for (let t = 0; t < turmasCount; t++) {
+            data[dia][aulaIdx][t].teacher = professor;
+            data[dia][aulaIdx][t].room = sala;
+        }
+    }
+
+    // ---------- DADOS MANHÃ ----------
+    function getMorningData() {
+        const aulas = MORNING_AULAS;
+        let data = criarMatrizVazia(TURMAS_MANHA, aulas);
+
+        // Preencher com regentes
+        for (let dia of DIAS) {
+            for (let aulaIdx = 0; aulaIdx < aulas.length; aulaIdx++) {
+                for (let turmaIdx = 0; turmaIdx < TURMAS_MANHA.length; turmaIdx++) {
+                    const turma = TURMAS_MANHA[turmaIdx];
+                    const prof = HOMEROOM_MANHA[turma];
+                    data[dia][aulaIdx][turmaIdx].teacher = prof;
+                    data[dia][aulaIdx][turmaIdx].room = getDefaultRoom(prof);
+                }
+            }
+        }
+
+        // Especialistas
+        const alocacoes = [
+            { dia: "Terça", aula: "1aula", prof: "Leno (Inglês)", sala: "Sala Inglês" },
+            { dia: "Quarta", aula: "1aula", prof: "Leno (Inglês)", sala: "Sala Inglês" },
+            { dia: "Sexta", aula: "1aula", prof: "Leno (Inglês)", sala: "Sala Inglês" },
+            { dia: "Segunda", aula: "5aula", prof: "Rafael (Inglês)", sala: "Sala Inglês" },
+            { dia: "Quinta", aula: "5aula", prof: "Rafael (Inglês)", sala: "Sala Inglês" },
+            { dia: "Segunda", aula: "1aula", prof: "Cris (Arte)", sala: "Ateliê" },
+            { dia: "Segunda", aula: "2aula", prof: "Cris (Arte)", sala: "Ateliê" },
+            { dia: "Terça", aula: "3aula", prof: "Cris (Arte)", sala: "Ateliê" },
+            { dia: "Quarta", aula: "4aula", prof: "Cris (Arte)", sala: "Ateliê" },
+            { dia: "Quinta", aula: "2aula", prof: "Cris (Arte)", sala: "Ateliê" },
+            { dia: "Sexta", aula: "3aula", prof: "Cris (Arte)", sala: "Ateliê" },
+            { dia: "Segunda", aula: "1aula", prof: "Gisele (Informática)", sala: "Lab Info" },
+            { dia: "Terça", aula: "1aula", prof: "Gisele (Informática)", sala: "Lab Info" },
+            { dia: "Quarta", aula: "2aula", prof: "Gisele (Informática)", sala: "Lab Info" },
+            { dia: "Quinta", aula: "3aula", prof: "Gisele (Informática)", sala: "Lab Info" },
+            { dia: "Sexta", aula: "4aula", prof: "Gisele (Informática)", sala: "Lab Info" },
+            { dia: "Segunda", aula: "3aula", prof: "Arthur (Ed. Física)", sala: "Quadra" },
+            { dia: "Sexta", aula: "5aula", prof: "Arthur (Ed. Física)", sala: "Quadra" },
+            { dia: "Terça", aula: "4aula", prof: "Gilberto (Ed. Física)", sala: "Quadra" },
+            { dia: "Quarta", aula: "5aula", prof: "Gilberto (Ed. Física)", sala: "Quadra" },
+            { dia: "Quinta", aula: "1aula", prof: "Thiago (Ed. Física)", sala: "Quadra" },
+            { dia: "Sexta", aula: "2aula", prof: "Thiago (Ed. Física)", sala: "Quadra" }
+        ];
+        for (let a of alocacoes) {
+            alocarTodos(data, a.dia, a.aula, a.prof, a.sala, MORNING_AULAS);
+        }
+
+        // Segunda-feira especial (Inglês)
+        const profPadraoSeg = "Patrícia (Inglês)";
+        const prof5CSeg = "Leno (Inglês)";
+        for (let aulaIdx = 0; aulaIdx < MORNING_AULAS.length; aulaIdx++) {
+            for (let turmaIdx = 0; turmaIdx < TURMAS_MANHA.length; turmaIdx++) {
+                const turma = TURMAS_MANHA[turmaIdx];
+                const prof = turma === "5º C" ? prof5CSeg : profPadraoSeg;
+                data["Segunda"][aulaIdx][turmaIdx].teacher = prof;
+                data["Segunda"][aulaIdx][turmaIdx].room = getDefaultRoom(prof);
+            }
+        }
+        return data;
+    }
+
+    // ---------- DADOS TARDE (modelo simples) ----------
+    function getAfternoonData() {
+        const aulas = AFTERNOON_AULAS;
+        let data = criarMatrizVazia(TURMAS_TARDE, aulas);
+        for (let dia of DIAS) {
+            for (let aulaIdx = 0; aulaIdx < aulas.length; aulaIdx++) {
+                for (let turmaIdx = 0; turmaIdx < TURMAS_TARDE.length; turmaIdx++) {
+                    const prof = `Prof. ${TURMAS_TARDE[turmaIdx]}`;
+                    data[dia][aulaIdx][turmaIdx].teacher = prof;
+                    data[dia][aulaIdx][turmaIdx].room = "---";
+                }
+            }
+        }
+        // Algumas alocações de especialistas (exemplo)
+        const alocacoes = [
+            { dia: "Segunda", aula: "5aula", prof: "Jeangel Souza", sala: "Sala 201" },
+            { dia: "Sexta", aula: "5aula", prof: "Jeangel Souza", sala: "Sala 201" },
+            { dia: "Segunda", aula: "1aula", prof: "Thiago (Informática)", sala: "Lab Info" },
+            { dia: "Terça", aula: "1aula", prof: "Cris (Arte)", sala: "Ateliê" },
+            { dia: "Quinta", aula: "1aula", prof: "Cris (Arte)", sala: "Ateliê" },
+            { dia: "Sexta", aula: "4aula", prof: "Informática", sala: "Lab Info" },
+            { dia: "Sexta", aula: "5aula", prof: "Informática", sala: "Lab Info" }
+        ];
+        for (let a of alocacoes) {
+            alocarTodos(data, a.dia, a.aula, a.prof, a.sala, AFTERNOON_AULAS);
+        }
+        return data;
+    }
+
+    // Estado global
+    let morningData = getMorningData();
+    let afternoonData = getAfternoonData();
+    let activeShift = "manha";
+    let activeDay = "Segunda";
+
+    function abrevNome(nome) {
+        if (!nome || nome === "Livre") return nome;
+        let partes = nome.trim().split(/\s+/);
+        if (partes.length === 1) return partes[0];
+        let primeiro = partes[0];
+        let ultimo = partes[partes.length-1];
+        let inicial = ultimo.charAt(0).toUpperCase();
+        return `${primeiro} ${inicial}.`;
+    }
+
+    function getCurrentData() {
+        return activeShift === "manha" ? morningData : afternoonData;
+    }
+
+    function getCurrentTurmas() {
+        return activeShift === "manha" ? TURMAS_MANHA : TURMAS_TARDE;
+    }
+
+    function getCurrentAulas() {
+        return activeShift === "manha" ? MORNING_AULAS : AFTERNOON_AULAS;
+    }
+
+    function saveToLocalStorage() {
+        const toSave = {
+            morning: morningData,
+            afternoon: afternoonData,
+            turmasManha: TURMAS_MANHA,
+            turmasTarde: TURMAS_TARDE
+        };
+        localStorage.setItem("horarioEscolar2026_completo", JSON.stringify(toSave));
+    }
+
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem("horarioEscolar2026_completo");
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.morning && parsed.afternoon) {
+                    morningData = parsed.morning;
+                    afternoonData = parsed.afternoon;
+                    if (parsed.turmasManha) TURMAS_MANHA = parsed.turmasManha;
+                    if (parsed.turmasTarde) TURMAS_TARDE = parsed.turmasTarde;
+                    return;
+                }
+            } catch(e) {}
+        }
+        morningData = getMorningData();
+        afternoonData = getAfternoonData();
+    }
+
+    function resetToOriginal() {
+        TURMAS_MANHA = [
+            "1º A", "1º B", "1º C", "1º D", "1º E",
+            "2º A", "2º B", "2º C",
+            "3º A", "3º B",
+            "4º A", "4º B", "4º C",
+            "5º A", "5º B", "5º C"
+        ];
+        TURMAS_TARDE = [
+            "1º E", "1º F", "1º G",
+            "2º D", "2º E", "2º F", "2º G",
+            "3º D", "3º E", "3º F",
+            "4º D", "4º E", "4º F",
+            "5º D", "5º E", "5º F"
+        ];
+        morningData = getMorningData();
+        afternoonData = getAfternoonData();
+        saveToLocalStorage();
+        renderAll();
+        alert("✅ Horários restaurados para os dados originais (2026).");
+    }
+
+    function shareSchedule() {
+        let texto = `📅 HORÁRIO ESCOLAR 2026 - EMEF QUINTINO BOCAIÚVA\n\n`;
+        texto += `=== MANHÃ ===\n`;
+        texto += gerarTextoShift(morningData, TURMAS_MANHA, MORNING_AULAS);
+        texto += `\n=== TARDE ===\n`;
+        texto += gerarTextoShift(afternoonData, TURMAS_TARDE, AFTERNOON_AULAS);
+        navigator.clipboard.writeText(texto).then(() => alert("📋 Horário copiado!"));
+    }
+
+    function gerarTextoShift(data, turmas, aulas) {
+        let txt = "";
+        for (let dia of DIAS) {
+            txt += `\n${dia.toUpperCase()}:\n`;
+            txt += `Período\t` + turmas.join("\t") + "\n";
+            for (let a = 0; a < aulas.length; a++) {
+                let linha = `${aulas[a].label} (${aulas[a].horario})\t`;
+                for (let t = 0; t < turmas.length; t++) {
+                    let cell = data[dia][a][t];
+                    linha += `${cell.teacher} (${cell.room})\t`;
+                }
+                txt += linha + "\n";
+            }
+        }
+        return txt;
+    }
+
+    // Legendas dos intervalos
+    function renderLegend() {
+        const legendDiv = document.getElementById("legendArea");
+        if (!legendDiv) return;
+        if (activeShift === "manha") {
+            legendDiv.innerHTML = `
+                ⏱️ <strong>INTERVALOS (MANHÃ)</strong> &nbsp; 
+                1º ano: 9h20 - 9h40 &nbsp; | &nbsp;
+                2º e 3º anos: 9h40 - 10h &nbsp; | &nbsp;
+                4º ano: 8h50 - 9h10 &nbsp; | &nbsp;
+                5º ano: 10h10 - 10h30
+                <br>
+                🖱️ <strong>DICA:</strong> Segure <kbd>Ctrl</kbd> (ou <kbd>Cmd</kbd>) enquanto arrasta para <strong>duplicar</strong> o professor (cópia em vez de mover).
+            `;
+        } else {
+            legendDiv.innerHTML = `
+                ⏱️ <strong>INTERVALOS (TARDE)</strong> &nbsp; 
+                1º ano: 14:40 - 15:00 &nbsp; | &nbsp;
+                2º ano: 15:10 - 15:30 &nbsp; | &nbsp;
+                3º ano: 15:40 - 16:00 &nbsp; | &nbsp;
+                4º e 5º anos: 16:00 - 16:20
+                <br>
+                🖱️ <strong>DICA:</strong> Segure <kbd>Ctrl</kbd> (ou <kbd>Cmd</kbd>) enquanto arrasta para <strong>duplicar</strong> o professor (cópia em vez de mover).
+            `;
+        }
+    }
+
+    let draggingSource = null;
+    let isCopyDrag = false;
+
+    function renderShiftTabs() {
+        const container = document.getElementById("shiftTabs");
+        container.innerHTML = "";
+        const shifts = [
+            { id: "manha", label: "🌅 MANHÃ" },
+            { id: "tarde", label: "🌙 TARDE" }
+        ];
+        shifts.forEach(s => {
+            const btn = document.createElement("button");
+            btn.className = `shift-tab ${activeShift === s.id ? "active" : ""}`;
+            btn.innerText = s.label;
+            btn.onclick = () => {
+                activeShift = s.id;
+                renderAll();
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function renderDayTabs() {
+        const container = document.getElementById("dayTabs");
+        container.innerHTML = "";
+        DIAS.forEach(dia => {
+            const btn = document.createElement("button");
+            btn.className = `day-tab ${activeDay === dia ? "active" : ""}`;
+            btn.innerText = dia;
+            btn.onclick = () => {
+                activeDay = dia;
+                renderGrid();
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function editTurmaName(shift, index, currentName) {
+        const novoNome = prompt("Editar nome da turma:", currentName);
+        if (novoNome && novoNome.trim() !== "") {
+            const novoNomeTrim = novoNome.trim();
+            const aulas = getCurrentAulas();
+            if (shift === "manha") {
+                TURMAS_MANHA[index] = novoNomeTrim;
+                const oldData = morningData;
+                morningData = criarMatrizVazia(TURMAS_MANHA, aulas);
+                for (let dia of DIAS) {
+                    for (let a = 0; a < aulas.length; a++) {
+                        for (let oldIdx = 0; oldIdx < oldData[dia][a].length; oldIdx++) {
+                            if (oldIdx === index) continue;
+                            let newIdx = oldIdx < index ? oldIdx : oldIdx - 1;
+                            if (newIdx >= 0 && newIdx < TURMAS_MANHA.length) {
+                                morningData[dia][a][newIdx] = oldData[dia][a][oldIdx];
+                            }
+                        }
+                    }
+                }
+                for (let dia of DIAS) {
+                    for (let a = 0; a < aulas.length; a++) {
+                        const prof = HOMEROOM_MANHA[novoNomeTrim] || "Professor";
+                        morningData[dia][a][index] = {
+                            teacher: prof,
+                            room: getDefaultRoom(prof)
+                        };
+                    }
+                }
+            } else {
+                TURMAS_TARDE[index] = novoNomeTrim;
+                const oldData = afternoonData;
+                afternoonData = criarMatrizVazia(TURMAS_TARDE, aulas);
+                for (let dia of DIAS) {
+                    for (let a = 0; a < aulas.length; a++) {
+                        for (let oldIdx = 0; oldIdx < oldData[dia][a].length; oldIdx++) {
+                            if (oldIdx === index) continue;
+                            let newIdx = oldIdx < index ? oldIdx : oldIdx - 1;
+                            if (newIdx >= 0 && newIdx < TURMAS_TARDE.length) {
+                                afternoonData[dia][a][newIdx] = oldData[dia][a][oldIdx];
+                            }
+                        }
+                    }
+                }
+                for (let dia of DIAS) {
+                    for (let a = 0; a < aulas.length; a++) {
+                        afternoonData[dia][a][index] = {
+                            teacher: `Prof. ${novoNomeTrim}`,
+                            room: "---"
+                        };
+                    }
+                }
+            }
+            saveToLocalStorage();
+            renderAll();
+        }
+    }
+
+    function renderGrid() {
+        const gridContainer = document.getElementById("scheduleGrid");
+        if (!gridContainer) return;
+        gridContainer.innerHTML = "";
+        const data = getCurrentData();
+        const turmas = getCurrentTurmas();
+        const aulas = getCurrentAulas();
+        const diaData = data[activeDay];
+        if (!diaData) return;
+
+        const grid = document.createElement("div");
+        grid.className = "schedule-grid";
+
+        // cabeçalho: coluna de horário + turmas
+        const emptyHeader = document.createElement("div");
+        emptyHeader.className = "grid-header";
+        emptyHeader.innerText = "Horário";
+        grid.appendChild(emptyHeader);
+        turmas.forEach((turma, idx) => {
+            const th = document.createElement("div");
+            th.className = "grid-header";
+            th.innerText = turma;
+            th.title = "Clique para editar nome da turma";
+            th.onclick = () => editTurmaName(activeShift, idx, turma);
+            grid.appendChild(th);
+        });
+
+        for (let aulaIdx = 0; aulaIdx < aulas.length; aulaIdx++) {
+            const aula = aulas[aulaIdx];
+            const timeCell = document.createElement("div");
+            timeCell.className = "time-slot";
+            timeCell.innerText = `${aula.label}\n${aula.horario}`;
+            grid.appendChild(timeCell);
+
+            for (let turmaIdx = 0; turmaIdx < turmas.length; turmaIdx++) {
+                const cell = document.createElement("div");
+                cell.className = "schedule-cell";
+                const cellData = diaData[aulaIdx][turmaIdx];
+                const teacherFull = cellData.teacher;
+                const teacherAbrev = abrevNome(teacherFull);
+                const room = cellData.room;
+
+                const card = document.createElement("div");
+                card.className = "teacher-card";
+                card.setAttribute("draggable", "true");
+                card.innerText = teacherAbrev;
+                card.title = `${teacherFull} (${room})\nClique para editar. Arraste para outra célula. Ctrl+arrastar para copiar.`;
+
+                card.addEventListener("dragstart", (e) => {
+                    draggingSource = { shift: activeShift, dia: activeDay, aula: aulaIdx, turma: turmaIdx };
+                    // Detecta se Ctrl está pressionado (cópia)
+                    isCopyDrag = e.ctrlKey || e.metaKey;
+                    e.dataTransfer.setData("text/plain", JSON.stringify(draggingSource));
+                    e.dataTransfer.effectAllowed = isCopyDrag ? "copy" : "move";
+                    card.classList.add("dragging");
+                });
+                card.addEventListener("dragend", () => {
+                    card.classList.remove("dragging");
+                    draggingSource = null;
+                    isCopyDrag = false;
+                });
+
+                card.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const novoNome = prompt("Editar nome completo do professor:", teacherFull);
+                    if (novoNome && novoNome.trim() !== "") {
+                        const novoNomeTrim = novoNome.trim();
+                        cellData.teacher = novoNomeTrim;
+                        // Atualiza a sala com base no novo nome
+                        cellData.room = getDefaultRoom(novoNomeTrim);
+                        saveToLocalStorage();
+                        renderGrid();
+                    }
+                });
+
+                const roomSpan = document.createElement("div");
+                roomSpan.className = "room-info";
+                roomSpan.innerText = `🏠 ${room}`;
+                roomSpan.title = "Clique para alterar sala";
+                roomSpan.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const novaSala = prompt("Editar sala/local:", room);
+                    if (novaSala !== null) {
+                        cellData.room = novaSala.trim() || "---";
+                        saveToLocalStorage();
+                        renderGrid();
+                    }
+                });
+
+                cell.appendChild(card);
+                cell.appendChild(roomSpan);
+
+                cell.addEventListener("dragover", (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = isCopyDrag ? "copy" : "move";
+                    cell.classList.add("drag-over");
+                });
+                cell.addEventListener("dragleave", () => {
+                    cell.classList.remove("drag-over");
+                });
+                cell.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    cell.classList.remove("drag-over");
+                    if (!draggingSource) return;
+                    if (draggingSource.shift !== activeShift || draggingSource.dia !== activeDay) {
+                        alert("Arraste apenas dentro do mesmo turno e mesmo dia.");
+                        return;
+                    }
+                    const srcAula = draggingSource.aula;
+                    const srcTurma = draggingSource.turma;
+                    const dstAula = aulaIdx;
+                    const dstTurma = turmaIdx;
+                    if (srcAula === dstAula && srcTurma === dstTurma && !isCopyDrag) return;
+
+                    const srcCell = data[activeDay][srcAula][srcTurma];
+                    const dstCell = data[activeDay][dstAula][dstTurma];
+
+                    if (isCopyDrag) {
+                        // Duplicar: copiar professor e sala para o destino
+                        dstCell.teacher = srcCell.teacher;
+                        dstCell.room = srcCell.room;
+                    } else {
+                        // Mover: trocar
+                        const tempTeacher = srcCell.teacher;
+                        const tempRoom = srcCell.room;
+                        srcCell.teacher = dstCell.teacher;
+                        srcCell.room = dstCell.room;
+                        dstCell.teacher = tempTeacher;
+                        dstCell.room = tempRoom;
+                    }
+
+                    saveToLocalStorage();
+                    renderGrid();
+                });
+
+                grid.appendChild(cell);
+            }
+        }
+        gridContainer.appendChild(grid);
+    }
+
+    function renderAll() {
+        renderShiftTabs();
+        renderDayTabs();
+        renderGrid();
+        renderLegend();
+    }
+
+    function bindButtons() {
+        document.getElementById("saveBtn").onclick = () => { saveToLocalStorage(); alert("✅ Alterações salvas!"); };
+        document.getElementById("shareBtn").onclick = shareSchedule;
+        document.getElementById("resetBtn").onclick = resetToOriginal;
+        document.getElementById("refreshBtn").onclick = () => { renderGrid(); saveToLocalStorage(); };
+    }
+
+    function init() {
+        loadFromLocalStorage();
+        bindButtons();
+        renderAll();
+    }
+    init();
+</script>
+</body>
+</html>
