@@ -47,6 +47,10 @@
         }
         .toolbar button:nth-child(2) { background: #2b6e4f; }
         .toolbar button:nth-child(3) { background: #2563eb; }
+        .toolbar button:nth-child(3) { background: #9b2c2c; }
+        .toolbar button:nth-child(4) { background: #2563eb; }
+        .toolbar button:nth-child(5) { background: #7c3aed; }
+        .toolbar button:nth-child(6) { background: #0f766e; }
         .toolbar button:hover { transform: translateY(-2px); filter: brightness(1.05); }
         .header-brand {
             background: #ffffff;
@@ -152,6 +156,8 @@
             min-height: 70px;
             cursor: pointer;
         }
+        .schedule-cell.hl-cell { background: #dcfce7; }
+        .schedule-cell.hi-cell { background: #fef9c3; }
         .schedule-cell.drag-over {
             background: #e0f2fe;
             box-shadow: inset 0 0 0 2px #0284c7;
@@ -251,6 +257,12 @@
         <button id="saveBtn">💾 Salvar</button>
         <button id="printBtn">🖨️ Imprimir</button>
         <button id="pdfBtn">📄 Gerar PDF</button>
+        <button id="shareBtn">📤 Compartilhar</button>
+        <button id="resetBtn">🔄 Restaurar original</button>
+        <button id="refreshBtn">📋 Atualizar</button>
+        <button id="pdfMorningBtn">🖨️ PDF Manhã</button>
+        <button id="pdfAfternoonBtn">🖨️ PDF Tarde</button>
+        <button id="pdfBtn">🖨️ Gerar PDF</button>
     </div>
     <div class="shift-tabs" id="shiftTabs"></div>
     <div class="day-tabs" id="dayTabs"></div>
@@ -259,6 +271,7 @@
     <div id="printSheet" class="print-sheet"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
     // ==================== Mapeamento Professor -> Sala Padrão (Manhã) ====================
     const TEACHER_ROOM_MAP = {
@@ -560,6 +573,18 @@
         const normalized = normalizeTag(teacherName);
         if (/^hl($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hl")) return "hl";
         if (/^hi($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hi")) return "hi";
+    function normalizeTag(texto = "") {
+        return texto
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+    }
+
+    function getTeacherColorTag(teacherName = "") {
+        const normalized = normalizeTag(teacherName);
+        if (/\bhl\b/.test(normalized)) return "hl";
+        if (/\bhi\b/.test(normalized)) return "hi";
         return "";
     }
 
@@ -577,6 +602,9 @@
         return "";
     }
 
+    function buildPrintableTable(data, turmas, aulas, dia, titulo) {
+        let html = `
+            <section style="width:100%;">
     function buildPrintableTable(data, turmas, aulas, dia, titulo) {
         let html = `
             <section style="width:100%;">
@@ -603,6 +631,120 @@
                     }).join("")}
                 </tr>
             `;
+                        const bgColor = getTeacherHighlightColor(cell.teacher);
+                        const extraBg = bgColor ? ` background:${bgColor};` : "";
+                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top;${extraBg}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
+                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top; ${getPrintCellStyle(cell.teacher)}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
+                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top;">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
+                    }).join("")}
+                </tr>
+            `;
+        }
+
+        html += `</tbody></table></section>`;
+        return html;
+    }
+
+    function montarFolhaPDF(dia) {
+        return `
+    function gerarPDFImpressao(turno) {
+        const printSheet = document.getElementById("printSheet");
+        if (!printSheet) return;
+        const dia = activeDay;
+        const isMorning = turno === "manha";
+        const title = isMorning ? "🌅 MANHÃ" : "🌙 TARDE";
+        const data = isMorning ? morningData : afternoonData;
+        const turmas = isMorning ? TURMAS_MANHA : TURMAS_TARDE;
+        const aulas = isMorning ? MORNING_AULAS : AFTERNOON_AULAS;
+    function gerarPDFImpressao() {
+        const printSheet = document.getElementById("printSheet");
+        if (!printSheet) return;
+        const dia = activeDay;
+        printSheet.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <img src="imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva"
+                     style="max-height:80px; object-fit:contain;">
+                <h2 style="margin:0; text-align:center; color:#1e3a5f;">
+                    Horário Escolar 2026 · ${dia}
+                </h2>
+                <p style="margin:0; text-align:center; font-size:12px; color:#475569;">
+                    Manhã sobre tarde para melhor visualização.
+                    Planilha individual (${title}) em A4 paisagem.
+                </p>
+                ${buildPrintableTable(data, turmas, aulas, dia, title)}
+                    Manhã e tarde na mesma folha (paisagem).
+                </p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    ${buildPrintableTable(morningData, TURMAS_MANHA, MORNING_AULAS, dia, "🌅 MANHÃ")}
+                    ${buildPrintableTable(afternoonData, TURMAS_TARDE, AFTERNOON_AULAS, dia, "🌙 TARDE")}
+                </div>
+            </div>
+        `;
+    }
+
+    function gerarPDFImpressao() {
+        const printSheet = document.getElementById("printSheet");
+        if (!printSheet) return;
+        const dia = activeDay;
+        printSheet.innerHTML = montarFolhaPDF(dia);
+
+        setTimeout(() => window.print(), 50);
+    }
+
+    async function gerarPDFCompartilhavel() {
+        const printSheet = document.getElementById("printSheet");
+        if (!printSheet) return;
+        const dia = activeDay;
+        printSheet.innerHTML = montarFolhaPDF(dia);
+
+        if (typeof html2pdf === "undefined") {
+            alert("Não foi possível gerar o PDF no momento.");
+            return;
+        }
+
+        const opt = {
+            margin: [8, 8, 8, 8],
+            filename: `Horario-Escolar-2026-${dia}.pdf`,
+            image: { type: "jpeg", quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+        };
+
+        try {
+            const worker = html2pdf().set(opt).from(printSheet);
+            const pdfBlob = await worker.outputPdf("blob");
+            const pdfFile = new File([pdfBlob], opt.filename, { type: "application/pdf" });
+
+            if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                await navigator.share({
+                    title: "Horário Escolar 2026",
+                    text: `Horário Escolar 2026 - ${dia}`,
+                    files: [pdfFile]
+                });
+            } else {
+                await worker.save();
+                alert("PDF gerado para compartilhar (download iniciado).");
+            }
+        } catch (error) {
+            console.error("Erro ao gerar/compartilhar PDF:", error);
+            alert("Não foi possível compartilhar o PDF. Tentando download.");
+            html2pdf().set(opt).from(printSheet).save();
+        }
+    }
+
+    function gerarTextoShift(data, turmas, aulas) {
+        let txt = "";
+        for (let dia of DIAS) {
+            txt += `\n${dia.toUpperCase()}:\n`;
+            txt += `Período\t` + turmas.join("\t") + "\n";
+            for (let a = 0; a < aulas.length; a++) {
+                let linha = `${aulas[a].label} (${aulas[a].horario})\t`;
+                for (let t = 0; t < turmas.length; t++) {
+                    let cell = data[dia][a][t];
+                    linha += `${cell.teacher} (${cell.room})\t`;
+                }
+                txt += linha + "\n";
+            }
         }
 
         html += `</tbody></table></section>`;
@@ -645,6 +787,20 @@
         `;
 
         setTimeout(() => window.print(), 50);
+    }
+
+    function getTeacherHighlightType(teacherName = "") {
+        const nome = String(teacherName).trim().toUpperCase();
+        if (/^HL\b/.test(nome)) return "hl";
+        if (/^HI\b/.test(nome)) return "hi";
+        return "";
+    }
+
+    function getTeacherHighlightColor(teacherName = "") {
+        const type = getTeacherHighlightType(teacherName);
+        if (type === "hl") return "#dcfce7";
+        if (type === "hi") return "#fef9c3";
+        return "";
     }
 
     // Legendas dos intervalos
@@ -814,6 +970,10 @@
                 const teacherFull = cellData.teacher;
                 const teacherAbrev = abrevNome(teacherFull);
                 const room = cellData.room;
+                const highlightType = getTeacherHighlightType(teacherFull);
+                if (highlightType) {
+                    cell.classList.add(`${highlightType}-cell`);
+                }
 
                 const card = document.createElement("div");
                 card.className = "teacher-card";
@@ -927,6 +1087,16 @@
         document.getElementById("saveBtn").onclick = () => { saveToLocalStorage(); alert("✅ Alterações salvas!"); };
         document.getElementById("printBtn").onclick = () => montarDocumentoImpressao(activeShift, "imprimir");
         document.getElementById("pdfBtn").onclick = () => montarDocumentoImpressao(activeShift, "pdf");
+        document.getElementById("shareBtn").onclick = shareSchedule;
+        document.getElementById("resetBtn").onclick = resetToOriginal;
+        document.getElementById("refreshBtn").onclick = () => { renderGrid(); saveToLocalStorage(); };
+        document.getElementById("pdfBtn").onclick = () => {
+            gerarPDFImpressao();
+            gerarPDFCompartilhavel();
+        };
+        document.getElementById("pdfMorningBtn").onclick = () => gerarPDFImpressao("manha");
+        document.getElementById("pdfAfternoonBtn").onclick = () => gerarPDFImpressao("tarde");
+        document.getElementById("pdfBtn").onclick = gerarPDFImpressao;
     }
 
     function init() {
