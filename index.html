@@ -3,154 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Horário Escolar 2026 · EMEF Quintino Bocaiuva</title>
+    <title>Gestão de Horários · EMEF Quintino Bocaiuva</title>
     <style>
         * { box-sizing: border-box; }
-        body { background: #eef2f8; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 10px; }
+        body { background: #eef2f8; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
 
-        .header-institucional {
-            width: 100%; max-width: 1400px; margin: 0 auto 15px auto;
-            display: flex; justify-content: center; background: white;
-            padding: 10px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
+        .header-institucional { width: 100%; max-width: 1400px; margin: 0 auto 15px; display: flex; justify-content: center; background: white; padding: 10px; border-radius: 15px; }
         .header-institucional img { width: 100%; max-width: 1200px; height: auto; }
 
-        .main-container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .main-container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); position: relative; }
 
+        /* Toolbar */
         .toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
-        .search-container { flex-grow: 1; min-width: 250px; }
-        .search-input { width: 100%; padding: 10px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; }
+        .search-container { flex-grow: 1; display: flex; gap: 10px; align-items: center; }
+        .search-input { flex-grow: 1; padding: 10px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; }
 
-        .toolbar button { border: none; padding: 10px 20px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; }
-        #saveBtn { background: #1e3a5f; }
-        #printBtn { background: #ef4444; }
-        #resetBtn { background: #86efac; color: #064e3b; }
+        /* Botões */
+        .btn { border: none; padding: 10px 20px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn-blue { background: #1e3a5f; }
+        .btn-red { background: #ef4444; }
+        .btn-lock { background: #64748b; font-size: 1.1rem; padding: 8px 15px; display: flex; align-items: center; gap: 8px; }
+        .btn-lock.unlocked { background: #f59e0b; }
 
-        .shift-tabs, .day-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
-        .shift-tab, .day-tab { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 600; color: #475569; }
-        .shift-tab.active, .day-tab.active { background: #1e3a5f !important; color: white !important; }
+        /* Login Modal */
+        #loginOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 30px; border-radius: 20px; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .login-box select, .login-box input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; }
 
-        /* Estilo da Grade */
-        .schedule-grid {
-            display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr));
-            border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 30px;
-        }
-        /* Células Editáveis com destaque visual */
-        .grid-header[contenteditable="true"], .time-slot[contenteditable="true"] { 
-            background: #f1f5f9; color: #1e3a5f; cursor: text; outline: none; border: 1px dashed #3b82f6;
-        }
-        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; min-height: 40px; }
+        /* Grade e Células */
+        .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr)); border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 30px; }
+        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+        .schedule-cell { background: white; border: 0.5px solid #e2e8f0; padding: 4px; min-height: 65px; cursor: pointer; transition: 0.2s; }
         
-        .schedule-cell { background: white; border: 0.5px solid #e2e8f0; padding: 4px; min-height: 60px; cursor: grab; position: relative; }
-        .teacher-card { font-weight: bold; text-align: center; pointer-events: none; }
-        .room-info { font-size: 0.55rem; color: #92400e; text-align: center; display: block; pointer-events: none; }
-
-        .cell-highlight { background-color: #bae6fd !important; }
-        .cell-dimmed { opacity: 0.2; }
+        /* Destaques */
+        .cell-highlight { background-color: #bae6fd !important; transform: scale(1.02); z-index: 5; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+        .cell-dimmed { opacity: 0.15; filter: grayscale(1); }
         .cell-hi { background-color: #fef08a !important; }
         .cell-hl { background-color: #bbf7d0 !important; }
 
-        .print-only { display: none; }
+        /* Abas */
+        .tabs-row { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tab { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 600; color: #475569; }
+        .tab.active { background: #1e3a5f; color: white; border-color: #1e3a5f; }
+
+        /* Rodapé Editável */
+        .editable-legend { margin-top: 20px; padding: 15px; background: #fffbeb; border: 2px dashed #f59e0b; border-radius: 10px; font-size: 0.85rem; min-height: 60px; outline: none; line-height: 1.5; }
 
         @media print {
             @page { size: A4 landscape; margin: 5mm; }
-            .toolbar, .shift-tabs, .day-tabs, #scheduleGrid, .legend { display: none !important; }
-            .print-only { display: block !important; }
-            .print-day-title { font-size: 14px; font-weight: bold; margin: 15px 0 5px 0; text-align: left; color: #1e3a5f; border-bottom: 2px solid #1e3a5f; }
-            .schedule-grid { page-break-inside: avoid; margin-bottom: 20px; width: 100% !important; grid-template-columns: 90px repeat(16, 1fr) !important; }
-            .grid-header[contenteditable="true"], .time-slot[contenteditable="true"] { border: 0.5px solid #cbd5e1; background: #f8fafc; }
-            body { background: white; }
+            .toolbar, .tabs-row, .btn-lock, #scheduleGrid { display: none !important; }
+            #printArea { display: block !important; }
+            body { background: white; padding: 0; }
         }
-
-        .legend { margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 10px; font-size: 0.8rem; text-align: center; }
     </style>
 </head>
 <body>
 
+<div id="loginOverlay">
+    <div class="login-box">
+        <h3 style="color: #1e3a5f; margin-top: 0;">Acesso da Gestão</h3>
+        <p style="font-size: 0.85rem; color: #64748b;">Selecione sua conta para editar</p>
+        <select id="userSelect">
+            <option value="DIR">DIR: Karen</option>
+            <option value="VIC">VIC: Veronica</option>
+            <option value="CRD">CRD: Larissa</option>
+        </select>
+        <input type="password" id="passInput" placeholder="Senha (3 dígitos)" maxlength="3">
+        <button class="btn btn-blue" style="width: 100%;" onclick="tryLogin()">Liberar Edição</button>
+        <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+            <button class="btn" style="background:none; color:#1e3a5f; font-size: 0.8rem;" onclick="recoverPass()">Esqueci minha senha</button>
+            <button class="btn" style="background:none; color:#ef4444; font-size: 0.8rem;" onclick="closeLogin()">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <div class="header-institucional">
-    <img src="https://raw.githubusercontent.com/emefquintinobocaiuva/horarioquintino26/main/imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva">
+    <img src="https://raw.githubusercontent.com/emefquintinobocaiuva/horarioquintino26/main/imagens/cabecquintino.jpg" alt="Cabeçalho Quintino">
 </div>
 
 <div class="main-container">
     <div class="toolbar">
         <div class="search-container">
-            <input type="text" id="teacherSearch" class="search-input" placeholder="🔍 Buscar Professor...">
+            <input type="text" id="teacherSearch" class="search-input" placeholder="🔍 Buscar professor (ex: Maria)...">
+            <button id="lockBtn" class="btn btn-lock" onclick="openLogin()">🔒 Bloqueado</button>
         </div>
-        <button id="saveBtn">💾 Salvar Alterações</button>
-        <button id="printBtn">🖨️ PDF Completo (Seg-Sex)</button>
-        <button id="resetBtn">🔄 Restaurar Padrão</button>
+        <button class="btn btn-blue" onclick="saveToLocal()">💾 Salvar</button>
+        <button class="btn btn-red" onclick="window.print()">🖨️ PDF Completo</button>
     </div>
     
-    <div class="shift-tabs" id="shiftTabs"></div>
-    <div class="day-tabs" id="dayTabs"></div>
+    <div class="tabs-row" id="shiftTabs"></div>
+    <div class="tabs-row" id="dayTabs"></div>
     
     <div id="scheduleGrid"></div>
-    <div id="printArea" class="print-only"></div>
+    <div id="printArea" style="display:none;"></div>
 
-    <div class="legend" id="legendArea"></div>
+    <div class="editable-legend" id="footerLegend" contenteditable="false" onblur="saveToLocal()">
+        Dica: Clique no cadeado acima para editar os horários do recreio e as aulas.
+    </div>
 </div>
 
 <script>
     const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
     
-    // Agora os horários e nomes de turmas são arrays de objetos para permitir edição e salvamento
-    let aulas_manha = [{l:"1ª", h:"7:10-8:00"}, {l:"2ª", h:"8:00-8:50"}, {l:"3ª", h:"8:50-10:00"}, {l:"4ª", h:"10:00-10:50"}, {l:"5ª", h:"10:50-11:40"}];
-    let aulas_tarde = [{l:"1ª", h:"13:30-14:20"}, {l:"2ª", h:"14:20-15:10"}, {l:"3ª", h:"15:10-16:20"}, {l:"4ª", h:"16:20-17:10"}, {l:"5ª", h:"17:10-18:00"}];
+    // Cadastro das Gestoras
+    const GESTORAS = {
+        "DIR": { nome: "Karen", email: "karentagliatti@sed.osasco.sp.gov.br" },
+        "VIC": { nome: "Veronica", email: "veronicacepulo@sed.osasco.sp.gov.br" },
+        "CRD": { nome: "Larissa", email: "larissaanne@sed.osasco.sp.gov.br" }
+    };
 
-    let turmas_manha = ["1ºA","1ºB","1ºC","1ºD","1ºE","2ºA","2ºB","2ºC","3ºA","3ºB","4ºA","4ºB","4ºC","5ºA","5ºB","5ºC"];
-    let turmas_tarde = ["1ºE","1ºF","1ºG","2ºD","2ºE","2ºF","2ºG","3ºD","3ºE","3ºF","4ºD","4ºE","4ºF","5ºD","5ºE","5ºF"];
+    let isEditing = false;
+    let currentUserKey = null;
+    let userPass = "321"; // Senha inicial solicitada
 
-    let morningData, afternoonData;
+    let config = {
+        manha: { 
+            aulas: [{l:"1ª",h:"7:10"},{l:"2ª",h:"8:00"},{l:"3ª",h:"8:50"},{l:"4ª",h:"10:00"},{l:"5ª",h:"10:50"}],
+            turmas: ["1ºA","1ºB","1ºC","1ºD","1ºE","2ºA","2ºB","2ºC","3ºA","3ºB","4ºA","4ºB","4ºC","5ºA","5ºB","5ºC"],
+            data: {},
+            legenda: "⏱️ INTERVALOS MANHÃ: 1º: 9:20 | 2º/3º: 9:40 | 4º: 8:50 | 5º: 10:10"
+        },
+        tarde: {
+            aulas: [{l:"1ª",h:"13:30"},{l:"2ª",h:"14:20"},{l:"3ª",h:"15:10"},{l:"4ª",h:"16:20"},{l:"5ª",h:"17:10"}],
+            turmas: ["1ºE","1ºF","1ºG","2ºD","2ºE","2ºF","2ºG","3ºD","3ºE","3ºF","4ºD","4ºE","4ºF","5ºD","5ºE","5ºF"],
+            data: {},
+            legenda: "⏱️ INTERVALOS TARDE: 1º: 14:40 | 2º: 15:10 | 3º: 15:40 | 4º/5º: 16:00"
+        }
+    };
+
     let activeShift = "manha";
     let activeDay = "Segunda";
     let searchTerm = "";
-    let draggedData = null;
 
-    function initData() {
-        const criar = (turmas) => {
-            let d = {}; DIAS.forEach(dia => {
-                d[dia] = Array(5).fill().map(() => Array(turmas.length).fill().map(() => ({ teacher: "Livre", room: "---" })));
-            }); return d;
-        };
-        morningData = criar(turmas_manha);
-        afternoonData = criar(turmas_tarde);
+    // --- SISTEMA DE LOGIN ---
+    function openLogin() {
+        if(isEditing) { logout(); return; }
+        document.getElementById("loginOverlay").style.display = "flex";
+    }
+    function closeLogin() { document.getElementById("loginOverlay").style.display = "none"; }
+    
+    function tryLogin() {
+        const pass = document.getElementById("passInput").value;
+        if(pass === userPass) {
+            isEditing = true;
+            currentUserKey = document.getElementById("userSelect").value;
+            const gestora = GESTORAS[currentUserKey];
+            document.getElementById("lockBtn").innerHTML = `🔓 ${currentUserKey}: ${gestora.nome}`;
+            document.getElementById("lockBtn").classList.add("unlocked");
+            document.getElementById("footerLegend").contenteditable = "true";
+            closeLogin();
+            renderAll();
+        } else { alert("Senha incorreta!"); }
     }
 
-    function onDragStart(e, aIdx, tIdx) {
-        const data = activeShift === "manha" ? morningData : afternoonData;
-        draggedData = { aIdx, tIdx, content: {...data[activeDay][aIdx][tIdx]}, isCopy: e.ctrlKey || e.metaKey };
-    }
-
-    function onDrop(e, aIdx, tIdx) {
-        e.preventDefault();
-        const data = activeShift === "manha" ? morningData : afternoonData;
-        if (!draggedData) return;
-        if (!draggedData.isCopy) data[activeDay][draggedData.aIdx][draggedData.tIdx] = { teacher: "Livre", room: "---" };
-        data[activeDay][aIdx][tIdx] = draggedData.content;
+    function logout() {
+        isEditing = false;
+        currentUserKey = null;
+        document.getElementById("lockBtn").innerHTML = "🔒 Bloqueado";
+        document.getElementById("lockBtn").classList.remove("unlocked");
+        document.getElementById("footerLegend").contenteditable = "false";
         renderAll();
     }
 
-    function createGridHTML(dia) {
-        const data = activeShift === "manha" ? morningData : afternoonData;
-        const turmasAtuais = activeShift === "manha" ? turmas_manha : turmas_tarde;
-        const aulasAtuais = activeShift === "manha" ? aulas_manha : aulas_tarde;
+    function recoverPass() {
+        const key = document.getElementById("userSelect").value;
+        const gestora = GESTORAS[key];
+        let emailDigitado = prompt(`Para recuperar a senha de ${gestora.nome}, digite seu e-mail institucional completo:`);
+        
+        if(emailDigitado === gestora.email) {
+            let nova = prompt("E-mail confirmado! Digite sua nova senha de 3 números:");
+            if(nova && nova.length === 3 && !isNaN(nova)) {
+                userPass = nova;
+                saveToLocal();
+                alert("Senha alterada com sucesso!");
+            } else { alert("Senha inválida. Use apenas 3 números."); }
+        } else if (emailDigitado !== null) {
+            alert("E-mail incorreto para esta usuária.");
+        }
+    }
+
+    // --- LOCALSTORAGE ---
+    function saveToLocal() {
+        config[activeShift].legenda = document.getElementById("footerLegend").innerText;
+        localStorage.setItem("db_quintino_2026", JSON.stringify({config, userPass}));
+    }
+
+    function loadFromLocal() {
+        const saved = localStorage.getItem("db_quintino_2026");
+        if(saved) {
+            const parsed = JSON.parse(saved);
+            config = parsed.config;
+            userPass = parsed.userPass || "321";
+        } else {
+            ["manha", "tarde"].forEach(s => {
+                DIAS.forEach(d => {
+                    config[s].data[d] = Array(5).fill().map(() => Array(16).fill().map(() => ({ teacher: "Livre", room: "---" })));
+                });
+            });
+        }
+    }
+
+    // --- RENDERIZAÇÃO ---
+    function createGridHTML(dia, forceShift = null) {
+        const shift = forceShift || activeShift;
+        const c = config[shift];
+        const gridData = c.data[dia];
         
         let html = `<div class="schedule-grid">`;
         html += `<div class="grid-header">Horas</div>`;
-        
-        // Renderiza Turmas Editáveis
-        turmasAtuais.forEach((t, i) => {
-            html += `<div class="grid-header" contenteditable="true" onblur="updateTurma(${i}, this.innerText)">${t}</div>`;
+        c.turmas.forEach((t, i) => {
+            html += `<div class="grid-header" ${isEditing?'contenteditable="true"':''} onblur="updateLabel(${i}, this.innerText, 'turma')">${t}</div>`;
         });
 
-        aulasAtuais.forEach((aula, aIdx) => {
-            // Renderiza Horário Editável
-            html += `<div class="time-slot" contenteditable="true" onblur="updateAula(${aIdx}, this.innerText)">${aula.l}\n${aula.h}</div>`;
-            
-            turmasAtuais.forEach((turma, tIdx) => {
-                const cell = data[dia][aIdx][tIdx];
+        c.aulas.forEach((aula, aIdx) => {
+            html += `<div class="time-slot" ${isEditing?'contenteditable="true"':''} onblur="updateLabel(${aIdx}, this.innerText, 'aula')">${aula.l}\n${aula.h}</div>`;
+            c.turmas.forEach((turma, tIdx) => {
+                const cell = gridData[aIdx][tIdx];
                 const prof = cell.teacher.toUpperCase();
                 let classes = "schedule-cell";
+                
                 if (searchTerm && prof !== "LIVRE") {
                     if (prof.includes(searchTerm.toUpperCase())) classes += " cell-highlight";
                     else classes += " cell-dimmed";
@@ -158,7 +229,7 @@
                 if (prof.includes("HI")) classes += " cell-hi";
                 if (prof.includes("HL")) classes += " cell-hl";
 
-                html += `<div class="${classes}" draggable="true" ondragstart="onDragStart(event, ${aIdx}, ${tIdx})" ondragover="event.preventDefault()" ondrop="onDrop(event, ${aIdx}, ${tIdx})" onclick="editCellManual(${aIdx}, ${tIdx})">
+                html += `<div class="${classes}" onclick="editCell(${aIdx}, ${tIdx})">
                             <div class="teacher-card">${cell.teacher}</div>
                             <div class="room-info">S: ${cell.room}</div>
                          </div>`;
@@ -168,59 +239,48 @@
         return html;
     }
 
-    function updateTurma(idx, val) {
-        if (activeShift === "manha") turmas_manha[idx] = val;
-        else turmas_tarde[idx] = val;
-    }
-
-    function updateAula(idx, val) {
-        let partes = val.split("\n");
-        if (activeShift === "manha") {
-            aulas_manha[idx].l = partes[0] || "";
-            aulas_manha[idx].h = partes[1] || "";
-        } else {
-            aulas_tarde[idx].l = partes[0] || "";
-            aulas_tarde[idx].h = partes[1] || "";
+    function updateLabel(idx, val, type) {
+        if(!isEditing) return;
+        if(type === 'turma') config[activeShift].turmas[idx] = val;
+        else {
+            let p = val.split("\n");
+            config[activeShift].aulas[idx] = {l: p[0] || "", h: p[1] || ""};
         }
+        saveToLocal();
     }
 
-    function editCellManual(aIdx, tIdx) {
-        const data = activeShift === "manha" ? morningData : afternoonData;
-        const n = prompt("Professor:", data[activeDay][aIdx][tIdx].teacher);
+    function editCell(aIdx, tIdx) {
+        if(!isEditing) return;
+        const data = config[activeShift].data[activeDay];
+        const n = prompt("Nome do Professor:", data[aIdx][tIdx].teacher);
         if (n !== null) {
-            const r = prompt("Sala:", data[activeDay][aIdx][tIdx].room);
-            data[activeDay][aIdx][tIdx] = { teacher: n || "Livre", room: r || "---" };
+            const r = prompt("Sala/Ambiente:", data[aIdx][tIdx].room);
+            data[aIdx][tIdx] = { teacher: n || "Livre", room: r || "---" };
+            saveToLocal();
             renderAll();
         }
     }
 
     function renderAll() {
         document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => 
-            `<button class="shift-tab ${activeShift===s?'active':''}" onclick="activeShift='${s}';renderAll()"> ${s==='manha'?'🌅 MANHÃ':'🌙 TARDE'}</button>`).join("");
+            `<div class="tab ${activeShift===s?'active':''}" onclick="activeShift='${s}';renderAll()">${s.toUpperCase()}</div>`).join("");
         document.getElementById("dayTabs").innerHTML = DIAS.map(d => 
-            `<button class="day-tab ${activeDay===d?'active':''}" onclick="activeDay='${d}';renderAll()">${d}</button>`).join("");
-        document.getElementById("scheduleGrid").innerHTML = createGridHTML(activeDay);
-        
-        // Legenda
-        const mLeg = `⏱️ <b>INTERVALOS MANHÃ:</b> 1º: 9:20-9:40 | 2º e 3º: 9:40-10:00 | 4º: 8:50-9:10 | 5º: 10:10-10:30`;
-        const tLeg = `⏱️ <b>INTERVALOS TARDE:</b> 1º: 14:40-15:00 | 2º: 15:10-15:30 | 3º: 15:40-16:00 | 4º e 5º: 16:00-16:20`;
-        document.getElementById("legendArea").innerHTML = (activeShift === "manha" ? mLeg : tLeg) + `<br><b>DICA:</b> Clique nos Nomes das Turmas ou nos Horários para editá-los diretamente!`;
+            `<div class="tab ${activeDay===d?'active':''}" onclick="activeDay='${d}';renderAll()">${d}</div>`).join("");
 
-        // Prepara Impressão Completa
+        document.getElementById("scheduleGrid").innerHTML = createGridHTML(activeDay);
+        document.getElementById("footerLegend").innerText = config[activeShift].legenda;
+
         const printArea = document.getElementById("printArea");
-        printArea.innerHTML = `<h2>HORÁRIO ESCOLAR - PERÍODO ${activeShift.toUpperCase()}</h2>`;
-        DIAS.forEach(dia => {
-            printArea.innerHTML += `<div class="print-day-title">${dia.toUpperCase()}</div>`;
-            printArea.innerHTML += createGridHTML(dia);
+        printArea.innerHTML = `<h1 style="text-align:center">EMEF QUINTINO BOCAIUVA - ${activeShift.toUpperCase()}</h1>`;
+        DIAS.forEach(d => {
+            printArea.innerHTML += `<h3 style="background:#eee; padding:5px; border-radius:5px;">${d.toUpperCase()}</h3>` + createGridHTML(d, activeShift);
         });
+        printArea.innerHTML += `<div style="margin-top:20px; font-weight:bold;">${config[activeShift].legenda}</div>`;
     }
 
     document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; renderAll(); };
-    document.getElementById("printBtn").onclick = () => window.print();
-    document.getElementById("saveBtn").onclick = () => alert("As alterações de turmas, horários e professores foram aplicadas na visualização atual!");
-    document.getElementById("resetBtn").onclick = () => { if(confirm("Deseja restaurar os horários e nomes padrões?")) { window.location.reload(); } };
 
-    initData();
+    loadFromLocal();
     renderAll();
 </script>
 </body>
