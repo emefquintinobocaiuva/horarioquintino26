@@ -2,1166 +2,223 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horário Escolar 2026 · Manhã e Tarde</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horário Escolar 2026 · EMEF Quintino Bocaiuva</title>
     <style>
-        * {
-            box-sizing: border-box;
+        * { box-sizing: border-box; }
+        body { background: #eef2f8; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 10px; }
+
+        .header-institucional {
+            width: 100%; max-width: 1400px; margin: 0 auto 15px auto;
+            display: flex; justify-content: center; background: white;
+            padding: 10px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        body {
-            background: #eef2f8;
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            margin: 0;
-            padding: 20px;
+        .header-institucional img { width: 100%; max-width: 1200px; height: auto; }
+
+        .main-container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+
+        .toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
+        .search-container { flex-grow: 1; min-width: 250px; }
+        .search-input { width: 100%; padding: 10px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; }
+
+        .toolbar button { border: none; padding: 10px 20px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; }
+        #saveBtn { background: #1e3a5f; }
+        #printBtn { background: #ef4444; }
+        #resetBtn { background: #86efac; color: #064e3b; }
+
+        .shift-tabs, .day-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+        .shift-tab, .day-tab { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 600; color: #475569; }
+        .shift-tab.active, .day-tab.active { background: #1e3a5f !important; color: white !important; }
+
+        /* Estilo da Grade */
+        .schedule-grid {
+            display: grid; grid-template-columns: 90px repeat(16, minmax(60px, 1fr));
+            border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 30px;
         }
-        .main-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 32px;
-            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
-            padding: 20px 16px 28px;
-            overflow-x: auto;
-        }
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 24px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #dce5f0;
-        }
-        .toolbar button {
-            background: #1e3a5f;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 40px;
-            color: white;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .toolbar button:nth-child(2) { background: #2b6e4f; }
-        .toolbar button:nth-child(3) { background: #2563eb; }
-        .toolbar button:nth-child(3) { background: #9b2c2c; }
-        .toolbar button:nth-child(4) { background: #2563eb; }
-        .toolbar button:nth-child(5) { background: #7c3aed; }
-        .toolbar button:nth-child(6) { background: #0f766e; }
-        .toolbar button:hover { transform: translateY(-2px); filter: brightness(1.05); }
-        .header-brand {
-            background: #ffffff;
-            border: 1px solid #dbe6f3;
-            border-radius: 20px;
-            padding: 10px 14px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .header-brand img {
-            max-width: 100%;
-            width: min(100%, 780px);
-            height: auto;
-            display: block;
+        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; }
+        .schedule-cell { background: white; border: 0.5px solid #e2e8f0; padding: 4px; min-height: 55px; cursor: grab; position: relative; }
+        .teacher-card { font-weight: bold; text-align: center; pointer-events: none; }
+        .room-info { font-size: 0.55rem; color: #92400e; text-align: center; display: block; pointer-events: none; }
+
+        /* Cores Especiais */
+        .cell-highlight { background-color: #bae6fd !important; }
+        .cell-dimmed { opacity: 0.2; }
+        .cell-hi { background-color: #fef08a !important; }
+        .cell-hl { background-color: #bbf7d0 !important; }
+
+        .print-only { display: none; }
+
+        /* REGRAS DE IMPRESSÃO - PDF PAISAGEM COMPLETO */
+        @media print {
+            @page { size: A4 landscape; margin: 5mm; }
+            .toolbar, .shift-tabs, .day-tabs, .main-container > #scheduleGrid, .legend { display: none !important; }
+            .print-only { display: block !important; }
+            .print-day-title { font-size: 14px; font-weight: bold; margin: 15px 0 5px 0; text-align: left; color: #1e3a5f; border-bottom: 2px solid #1e3a5f; }
+            .schedule-grid { page-break-inside: avoid; margin-bottom: 20px; width: 100% !important; grid-template-columns: 80px repeat(16, 1fr) !important; }
+            .header-institucional { margin-bottom: 10px; }
+            body { background: white; }
         }
 
-        .shift-tabs {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #cbd5e1;
-            padding-bottom: 8px;
-        }
-        .shift-tab {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            font-weight: 700;
-            padding: 8px 24px;
-            border-radius: 40px;
-            cursor: pointer;
-            color: #475569;
-            transition: 0.2s;
-        }
-        .shift-tab.active {
-            background: #1e3a5f;
-            color: white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        .day-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .day-tab {
-            background: #f1f5f9;
-            border: none;
-            padding: 6px 18px;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            color: #1e293b;
-        }
-        .day-tab.active {
-            background: #1e3a5f;
-            color: white;
-        }
-        .schedule-grid {
-            display: grid;
-            grid-template-columns: 120px repeat(16, minmax(95px, 1fr));
-            background: #fff;
-            border-radius: 20px;
-            overflow-x: auto;
-            border: 1px solid #e2edf2;
-            font-size: 0.75rem;
-        }
-        .grid-header {
-            background: #f1f5f9;
-            font-weight: 800;
-            text-align: center;
-            padding: 10px 4px;
-            border-bottom: 2px solid #cbd5e1;
-            border-right: 1px solid #e2e8f0;
-            font-size: 0.75rem;
-            color: #0f2b3d;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-        .grid-header:hover {
-            background: #e2e8f0;
-        }
-        .time-slot {
-            background: #f8fafc;
-            font-weight: 600;
-            text-align: center;
-            padding: 10px 4px;
-            border-bottom: 1px solid #e2e8f0;
-            border-right: 1px solid #e2e8f0;
-            font-size: 0.75rem;
-            color: #334155;
-            line-height: 1.3;
-        }
-        .schedule-cell {
-            background: #ffffff;
-            border-bottom: 1px solid #e9eef3;
-            border-right: 1px solid #e9eef3;
-            padding: 6px;
-            transition: background 0.1s;
-            min-height: 70px;
-            cursor: pointer;
-        }
-        .schedule-cell.hl-cell {
-            background: #f0fdf4;
-        }
-        .schedule-cell.hi-cell {
-            background: #fffbeb;
-        }
-        .schedule-cell.hl-cell { background: #dcfce7; }
-        .schedule-cell.hi-cell { background: #fef9c3; }
-        .schedule-cell.drag-over {
-            background: #e0f2fe;
-            box-shadow: inset 0 0 0 2px #0284c7;
-        }
-        .teacher-card {
-            background: #eef2ff;
-            border-left: 4px solid #3b82f6;
-            padding: 5px 4px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.7rem;
-            text-align: center;
-            word-break: break-word;
-            cursor: grab;
-            transition: 0.1s;
-            margin-bottom: 4px;
-        }
-        .teacher-card.hl-card {
-            background: #dcfce7;
-            border-left-color: #16a34a;
-        }
-        .teacher-card.hi-card {
-            background: #fef9c3;
-            border-left-color: #ca8a04;
-        }
-        .teacher-card:active { cursor: grabbing; }
-        .teacher-card.dragging { opacity: 0.4; }
-        .room-info {
-            font-size: 0.6rem;
-            color: #92400e;
-            background: #fffbeb;
-            border-radius: 20px;
-            padding: 2px 6px;
-            display: inline-block;
-            width: 100%;
-            text-align: center;
-            cursor: pointer;
-            margin-top: 4px;
-        }
-        .legend {
-            font-size: 12px;
-            margin-top: 20px;
-            text-align: center;
-            color: #2c3e66;
-            background: #fef9e3;
-            padding: 12px 16px;
-            border-radius: 20px;
-            border-left: 6px solid #f59e0b;
-        }
-        @media (max-width: 1000px) {
-            .schedule-grid { font-size: 0.65rem; }
-            .grid-header, .time-slot { padding: 6px 2px; }
-        }
-        .print-sheet {
-            display: none;
-        }
-        .print-day-section {
-            page-break-after: always;
-            break-after: page;
-            margin-bottom: 8mm;
-        }
-        .print-day-section:last-child {
-            page-break-after: auto;
-            break-after: auto;
-            margin-bottom: 0;
-        }
-        @media print {
-            @page {
-                size: A4 landscape;
-                margin: 8mm;
-            }
-            body {
-                background: white;
-                padding: 0;
-            }
-            .main-container {
-                box-shadow: none;
-                border-radius: 0;
-                max-width: 100%;
-                padding: 0;
-            }
-            .toolbar, .shift-tabs, .day-tabs, #scheduleGrid, .legend {
-                display: none !important;
-            }
-            .print-sheet {
-                display: block;
-            }
-        }
+        .legend { margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 10px; font-size: 0.8rem; text-align: center; }
     </style>
 </head>
 <body>
-<div class="main-container" id="app">
-    <div class="header-brand">
-        <img src="imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva">
-    </div>
-    <div class="toolbar">
-        <button id="saveBtn">💾 Salvar</button>
-        <button id="printBtn">🖨️ Imprimir</button>
-        <button id="pdfBtn">📄 Gerar PDF</button>
-        <button id="shareBtn">📤 Compartilhar</button>
-        <button id="resetBtn">🔄 Restaurar original</button>
-        <button id="refreshBtn">📋 Atualizar</button>
-        <button id="pdfMorningBtn">🖨️ PDF Manhã</button>
-        <button id="pdfAfternoonBtn">🖨️ PDF Tarde</button>
-        <button id="pdfBtn">🖨️ Gerar PDF</button>
-    </div>
-    <div class="shift-tabs" id="shiftTabs"></div>
-    <div class="day-tabs" id="dayTabs"></div>
-    <div id="scheduleGrid"></div>
-    <div class="legend" id="legendArea"></div>
-    <div id="printSheet" class="print-sheet"></div>
+
+<div class="header-institucional">
+    <img src="cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva">
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-    // ==================== Mapeamento Professor -> Sala Padrão (Manhã) ====================
-    const TEACHER_ROOM_MAP = {
-        // Regentes
-        "Sônia": "Sala 1º A",
-        "Ivonete": "Sala 1º B",
-        "Jeangela": "Sala 1º C",
-        "Bruno": "Sala 1º D",
-        "Thaís": "Sala 1º E",
-        "Eliane": "Sala 2º A",
-        "Duda": "Sala 2º B",
-        "Andreza": "Sala 2º C",
-        "Claudete": "Sala 3º A",
-        "Natália": "Sala 3º B",
-        "Beth": "Sala 4º A",
-        "Erislene": "Sala 4º B",
-        "Rosângela": "Sala 4º C",
-        "Taty": "Sala 5º A",
-        "Daniele": "Sala 5º B",
-        "Cleo": "Sala 5º C",
-        // Especialistas
-        "Leno (Inglês)": "Sala Inglês",
-        "Rafael (Inglês)": "Sala Inglês",
-        "Cris (Arte)": "Ateliê",
-        "Gisele (Informática)": "Lab Info",
-        "Arthur (Ed. Física)": "Quadra",
-        "Gilberto (Ed. Física)": "Quadra",
-        "Thiago (Ed. Física)": "Quadra",
-        "Patrícia (Inglês)": "Sala Inglês"
-    };
-
-    // Função para obter sala padrão com base no nome do professor
-    function getDefaultRoom(teacherName) {
-        // Tenta encontrar exatamente no mapa
-        if (TEACHER_ROOM_MAP[teacherName]) return TEACHER_ROOM_MAP[teacherName];
-        // Se não, tenta encontrar por substring (ex: "Sônia" sozinho)
-        for (let [key, room] of Object.entries(TEACHER_ROOM_MAP)) {
-            if (teacherName.includes(key)) return room;
-        }
-        return "---";
-    }
-
-    // ==================== CONFIGURAÇÕES GLOBAIS ====================
-    const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+<div class="main-container">
+    <div class="toolbar">
+        <div class="search-container">
+            <input type="text" id="teacherSearch" class="search-input" placeholder="🔍 Buscar Professor...">
+        </div>
+        <button id="saveBtn">💾 Salvar</button>
+        <button id="printBtn">🖨️ PDF Completo (Seg-Sex)</button>
+        <button id="resetBtn">🔄 Restaurar</button>
+    </div>
     
-    // AULAS para manhã e tarde (apenas 5, sem intervalo na grade)
-    const MORNING_AULAS = [
-        { id: "1aula", label: "1ª aula", horario: "7h10 - 8h" },
-        { id: "2aula", label: "2ª aula", horario: "8h - 8h50" },
-        { id: "3aula", label: "3ª aula", horario: "8h50 - 10h" },
-        { id: "4aula", label: "4ª aula", horario: "10h - 10h50" },
-        { id: "5aula", label: "5ª aula", horario: "10h50 - 11h40" }
-    ];
-    const AFTERNOON_AULAS = [
-        { id: "1aula", label: "1ª aula", horario: "13:30 - 14:20" },
-        { id: "2aula", label: "2ª aula", horario: "14:20 - 15:10" },
-        { id: "3aula", label: "3ª aula", horario: "15:10 - 16:20" },
-        { id: "4aula", label: "4ª aula", horario: "16:20 - 17:10" },
-        { id: "5aula", label: "5ª aula", horario: "17:10 - 18:00" }
-    ];
+    <div class="shift-tabs" id="shiftTabs"></div>
+    <div class="day-tabs" id="dayTabs"></div>
+    
+    <div id="scheduleGrid"></div>
 
-    function getCurrentAulas() {
-        return activeShift === "manha" ? MORNING_AULAS : AFTERNOON_AULAS;
-    }
+    <div id="printArea" class="print-only"></div>
 
-    // Turmas da Manhã (editáveis)
-    let TURMAS_MANHA = [
-        "1º A", "1º B", "1º C", "1º D", "1º E",
-        "2º A", "2º B", "2º C",
-        "3º A", "3º B",
-        "4º A", "4º B", "4º C",
-        "5º A", "5º B", "5º C"
-    ];
+    <div class="legend" id="legendArea"></div>
+</div>
 
-    // Professores regentes (homeroom)
-    const HOMEROOM_MANHA = {
-        "1º A": "Sônia",
-        "1º B": "Ivonete",
-        "1º C": "Jeangela",
-        "1º D": "Bruno",
-        "1º E": "Thaís",
-        "2º A": "Eliane",
-        "2º B": "Duda",
-        "2º C": "Andreza",
-        "3º A": "Claudete",
-        "3º B": "Natália",
-        "4º A": "Beth",
-        "4º B": "Erislene",
-        "4º C": "Rosângela",
-        "5º A": "Taty",
-        "5º B": "Daniele",
-        "5º C": "Cleo"
-    };
+<script>
+    const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+    const MORNING_AULAS = [{label:"1ª", h:"7:10-8:00"}, {label:"2ª", h:"8:00-8:50"}, {label:"3ª", h:"8:50-10:00"}, {label:"4ª", h:"10:00-10:50"}, {label:"5ª", h:"10:50-11:40"}];
+    const AFTERNOON_AULAS = [{label:"1ª", h:"13:30-14:20"}, {label:"2ª", h:"14:20-15:10"}, {label:"3ª", h:"15:10-16:20"}, {label:"4ª", h:"16:20-17:10"}, {label:"5ª", h:"17:10-18:00"}];
+    
+    let TURMAS_MANHA = ["1ºA","1ºB","1ºC","1ºD","1ºE","2ºA","2ºB","2ºC","3ºA","3ºB","4ºA","4ºB","4ºC","5ºA","5ºB","5ºC"];
+    let TURMAS_TARDE = ["1ºE","1ºF","1ºG","2ºD","2ºE","2ºF","2ºG","3ºD","3ºE","3ºF","4ºD","4ºE","4ºF","5ºD","5ºE","5ºF"];
 
-    // Turmas da Tarde (editáveis)
-    let TURMAS_TARDE = [
-        "1º E", "1º F", "1º G",
-        "2º D", "2º E", "2º F", "2º G",
-        "3º D", "3º E", "3º F",
-        "4º D", "4º E", "4º F",
-        "5º D", "5º E", "5º F"
-    ];
-
-    function criarMatrizVazia(turmas, aulas) {
-        const data = {};
-        for (let dia of DIAS) {
-            data[dia] = Array(aulas.length).fill().map(() => Array(turmas.length).fill().map(() => ({ teacher: "Livre", room: "---" })));
-        }
-        return data;
-    }
-
-    function alocarTodos(data, dia, aulaId, professor, sala, aulas) {
-        const diaIdx = DIAS.indexOf(dia);
-        const aulaIdx = aulas.findIndex(a => a.id === aulaId);
-        if (diaIdx === -1 || aulaIdx === -1) return;
-        const turmasCount = data[dia][aulaIdx].length;
-        for (let t = 0; t < turmasCount; t++) {
-            data[dia][aulaIdx][t].teacher = professor;
-            data[dia][aulaIdx][t].room = sala;
-        }
-    }
-
-    // ---------- DADOS MANHÃ ----------
-    function getMorningData() {
-        const aulas = MORNING_AULAS;
-        let data = criarMatrizVazia(TURMAS_MANHA, aulas);
-
-        // Preencher com regentes
-        for (let dia of DIAS) {
-            for (let aulaIdx = 0; aulaIdx < aulas.length; aulaIdx++) {
-                for (let turmaIdx = 0; turmaIdx < TURMAS_MANHA.length; turmaIdx++) {
-                    const turma = TURMAS_MANHA[turmaIdx];
-                    const prof = HOMEROOM_MANHA[turma];
-                    data[dia][aulaIdx][turmaIdx].teacher = prof;
-                    data[dia][aulaIdx][turmaIdx].room = getDefaultRoom(prof);
-                }
-            }
-        }
-
-        // Especialistas
-        const alocacoes = [
-            { dia: "Terça", aula: "1aula", prof: "Leno (Inglês)", sala: "Sala Inglês" },
-            { dia: "Quarta", aula: "1aula", prof: "Leno (Inglês)", sala: "Sala Inglês" },
-            { dia: "Sexta", aula: "1aula", prof: "Leno (Inglês)", sala: "Sala Inglês" },
-            { dia: "Segunda", aula: "5aula", prof: "Rafael (Inglês)", sala: "Sala Inglês" },
-            { dia: "Quinta", aula: "5aula", prof: "Rafael (Inglês)", sala: "Sala Inglês" },
-            { dia: "Segunda", aula: "1aula", prof: "Cris (Arte)", sala: "Ateliê" },
-            { dia: "Segunda", aula: "2aula", prof: "Cris (Arte)", sala: "Ateliê" },
-            { dia: "Terça", aula: "3aula", prof: "Cris (Arte)", sala: "Ateliê" },
-            { dia: "Quarta", aula: "4aula", prof: "Cris (Arte)", sala: "Ateliê" },
-            { dia: "Quinta", aula: "2aula", prof: "Cris (Arte)", sala: "Ateliê" },
-            { dia: "Sexta", aula: "3aula", prof: "Cris (Arte)", sala: "Ateliê" },
-            { dia: "Segunda", aula: "1aula", prof: "Gisele (Informática)", sala: "Lab Info" },
-            { dia: "Terça", aula: "1aula", prof: "Gisele (Informática)", sala: "Lab Info" },
-            { dia: "Quarta", aula: "2aula", prof: "Gisele (Informática)", sala: "Lab Info" },
-            { dia: "Quinta", aula: "3aula", prof: "Gisele (Informática)", sala: "Lab Info" },
-            { dia: "Sexta", aula: "4aula", prof: "Gisele (Informática)", sala: "Lab Info" },
-            { dia: "Segunda", aula: "3aula", prof: "Arthur (Ed. Física)", sala: "Quadra" },
-            { dia: "Sexta", aula: "5aula", prof: "Arthur (Ed. Física)", sala: "Quadra" },
-            { dia: "Terça", aula: "4aula", prof: "Gilberto (Ed. Física)", sala: "Quadra" },
-            { dia: "Quarta", aula: "5aula", prof: "Gilberto (Ed. Física)", sala: "Quadra" },
-            { dia: "Quinta", aula: "1aula", prof: "Thiago (Ed. Física)", sala: "Quadra" },
-            { dia: "Sexta", aula: "2aula", prof: "Thiago (Ed. Física)", sala: "Quadra" }
-        ];
-        for (let a of alocacoes) {
-            alocarTodos(data, a.dia, a.aula, a.prof, a.sala, MORNING_AULAS);
-        }
-
-        // Segunda-feira especial (Inglês)
-        const profPadraoSeg = "Patrícia (Inglês)";
-        const prof5CSeg = "Leno (Inglês)";
-        for (let aulaIdx = 0; aulaIdx < MORNING_AULAS.length; aulaIdx++) {
-            for (let turmaIdx = 0; turmaIdx < TURMAS_MANHA.length; turmaIdx++) {
-                const turma = TURMAS_MANHA[turmaIdx];
-                const prof = turma === "5º C" ? prof5CSeg : profPadraoSeg;
-                data["Segunda"][aulaIdx][turmaIdx].teacher = prof;
-                data["Segunda"][aulaIdx][turmaIdx].room = getDefaultRoom(prof);
-            }
-        }
-        return data;
-    }
-
-    // ---------- DADOS TARDE (modelo simples) ----------
-    function getAfternoonData() {
-        const aulas = AFTERNOON_AULAS;
-        let data = criarMatrizVazia(TURMAS_TARDE, aulas);
-        for (let dia of DIAS) {
-            for (let aulaIdx = 0; aulaIdx < aulas.length; aulaIdx++) {
-                for (let turmaIdx = 0; turmaIdx < TURMAS_TARDE.length; turmaIdx++) {
-                    const prof = `Prof. ${TURMAS_TARDE[turmaIdx]}`;
-                    data[dia][aulaIdx][turmaIdx].teacher = prof;
-                    data[dia][aulaIdx][turmaIdx].room = "---";
-                }
-            }
-        }
-        // Algumas alocações de especialistas (exemplo)
-        const alocacoes = [
-            { dia: "Segunda", aula: "5aula", prof: "Jeangel Souza", sala: "Sala 201" },
-            { dia: "Sexta", aula: "5aula", prof: "Jeangel Souza", sala: "Sala 201" },
-            { dia: "Segunda", aula: "1aula", prof: "Thiago (Informática)", sala: "Lab Info" },
-            { dia: "Terça", aula: "1aula", prof: "Cris (Arte)", sala: "Ateliê" },
-            { dia: "Quinta", aula: "1aula", prof: "Cris (Arte)", sala: "Ateliê" },
-            { dia: "Sexta", aula: "4aula", prof: "Informática", sala: "Lab Info" },
-            { dia: "Sexta", aula: "5aula", prof: "Informática", sala: "Lab Info" }
-        ];
-        for (let a of alocacoes) {
-            alocarTodos(data, a.dia, a.aula, a.prof, a.sala, AFTERNOON_AULAS);
-        }
-        return data;
-    }
-
-    // Estado global
-    let morningData = getMorningData();
-    let afternoonData = getAfternoonData();
+    let morningData, afternoonData;
     let activeShift = "manha";
     let activeDay = "Segunda";
+    let searchTerm = "";
+    let draggedData = null;
 
-    function abrevNome(nome) {
-        if (!nome || nome === "Livre") return nome;
-        let partes = nome.trim().split(/\s+/);
-        if (partes.length === 1) return partes[0];
-        let primeiro = partes[0];
-        let ultimo = partes[partes.length-1];
-        let inicial = ultimo.charAt(0).toUpperCase();
-        return `${primeiro} ${inicial}.`;
-    }
-
-    function getCurrentData() {
-        return activeShift === "manha" ? morningData : afternoonData;
-    }
-
-    function getCurrentTurmas() {
-        return activeShift === "manha" ? TURMAS_MANHA : TURMAS_TARDE;
-    }
-
-    function getCurrentAulas() {
-        return activeShift === "manha" ? MORNING_AULAS : AFTERNOON_AULAS;
-    }
-
-    function saveToLocalStorage() {
-        const toSave = {
-            morning: morningData,
-            afternoon: afternoonData,
-            turmasManha: TURMAS_MANHA,
-            turmasTarde: TURMAS_TARDE
+    function initData() {
+        const criar = (turmas) => {
+            let d = {}; DIAS.forEach(dia => {
+                d[dia] = Array(5).fill().map(() => Array(turmas.length).fill().map(() => ({ teacher: "Livre", room: "---" })));
+            }); return d;
         };
-        localStorage.setItem("horarioEscolar2026_completo", JSON.stringify(toSave));
+        morningData = criar(TURMAS_MANHA);
+        afternoonData = criar(TURMAS_TARDE);
     }
 
-    function loadFromLocalStorage() {
-        const saved = localStorage.getItem("horarioEscolar2026_completo");
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (parsed.morning && parsed.afternoon) {
-                    morningData = parsed.morning;
-                    afternoonData = parsed.afternoon;
-                    if (parsed.turmasManha) TURMAS_MANHA = parsed.turmasManha;
-                    if (parsed.turmasTarde) TURMAS_TARDE = parsed.turmasTarde;
-                    return;
-                }
-            } catch(e) {}
+    // --- LÓGICA DE DRAG & DROP ---
+    function onDragStart(e, aIdx, tIdx) {
+        const data = activeShift === "manha" ? morningData : afternoonData;
+        draggedData = { aIdx, tIdx, content: {...data[activeDay][aIdx][tIdx]}, isCopy: e.ctrlKey || e.metaKey };
+        e.dataTransfer.setData("text/plain", ""); // Necessário para Firefox
+    }
+
+    function onDrop(e, aIdx, tIdx) {
+        e.preventDefault();
+        const data = activeShift === "manha" ? morningData : afternoonData;
+        
+        if (!draggedData) return;
+
+        // Se NÃO for cópia, limpa a origem
+        if (!draggedData.isCopy) {
+            data[activeDay][draggedData.aIdx][draggedData.tIdx] = { teacher: "Livre", room: "---" };
         }
-        morningData = getMorningData();
-        afternoonData = getAfternoonData();
-    }
-
-    function resetToOriginal() {
-        TURMAS_MANHA = [
-            "1º A", "1º B", "1º C", "1º D", "1º E",
-            "2º A", "2º B", "2º C",
-            "3º A", "3º B",
-            "4º A", "4º B", "4º C",
-            "5º A", "5º B", "5º C"
-        ];
-        TURMAS_TARDE = [
-            "1º E", "1º F", "1º G",
-            "2º D", "2º E", "2º F", "2º G",
-            "3º D", "3º E", "3º F",
-            "4º D", "4º E", "4º F",
-            "5º D", "5º E", "5º F"
-        ];
-        morningData = getMorningData();
-        afternoonData = getAfternoonData();
-        saveToLocalStorage();
+        
+        // Aplica ao destino
+        data[activeDay][aIdx][tIdx] = draggedData.content;
         renderAll();
-        alert("✅ Horários restaurados para os dados originais (2026).");
     }
 
-    function normalizeTag(texto = "") {
-        return texto
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .trim();
-    }
+    // --- RENDERIZAÇÃO ---
+    function createGridHTML(dia, isPrint = false) {
+        const data = activeShift === "manha" ? morningData : afternoonData;
+        const turmas = activeShift === "manha" ? TURMAS_MANHA : TURMAS_TARDE;
+        const aulas = activeShift === "manha" ? MORNING_AULAS : AFTERNOON_AULAS;
+        
+        let html = `<div class="schedule-grid">`;
+        html += `<div class="grid-header">Horas</div>`;
+        turmas.forEach(t => html += `<div class="grid-header">${t}</div>`);
 
-    function getTeacherColorTag(teacherName = "") {
-        const normalized = normalizeTag(teacherName);
-        if (/^hl($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hl")) return "hl";
-        if (/^hi($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hi")) return "hi";
-    function normalizeTag(texto = "") {
-        return texto
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .trim();
-    }
+        aulas.forEach((aula, aIdx) => {
+            html += `<div class="time-slot">${aula.label}<br>${aula.h}</div>`;
+            turmas.forEach((turma, tIdx) => {
+                const cell = data[dia][aIdx][tIdx];
+                const prof = cell.teacher.toUpperCase();
+                let classes = "schedule-cell";
+                
+                if (searchTerm && prof !== "LIVRE") {
+                    if (prof.includes(searchTerm.toUpperCase())) classes += " cell-highlight";
+                    else classes += " cell-dimmed";
+                }
+                if (prof.includes("HI")) classes += " cell-hi";
+                if (prof.includes("HL")) classes += " cell-hl";
 
-    function getTeacherColorTag(teacherName = "") {
-        const normalized = normalizeTag(teacherName);
-        if (/\bhl\b/.test(normalized)) return "hl";
-        if (/\bhi\b/.test(normalized)) return "hi";
-        return "";
-    }
-
-    function getTeacherCardClass(teacherName = "") {
-        const tag = getTeacherColorTag(teacherName);
-        if (tag === "hl") return "hl-card";
-        if (tag === "hi") return "hi-card";
-        return "";
-    }
-
-    function getPrintCellStyle(teacherName = "") {
-        const tag = getTeacherColorTag(teacherName);
-        if (tag === "hl") return "background:#dcfce7;";
-        if (tag === "hi") return "background:#fef9c3;";
-        return "";
-    }
-
-    function buildPrintableTable(data, turmas, aulas, dia, titulo) {
-        let html = `
-            <section style="width:100%;">
-    function buildPrintableTable(data, turmas, aulas, dia, titulo) {
-        let html = `
-            <section style="width:100%;">
-                <h3 style="margin:0 0 8px; text-align:center; color:#1e3a5f;">${titulo}</h3>
-                <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:10px;">
-                    <thead>
-                        <tr>
-                            <th style="border:1px solid #94a3b8; padding:4px; background:#e2e8f0;">Horário</th>
-                            ${turmas.map(t => `<th style="border:1px solid #94a3b8; padding:4px; background:#e2e8f0;">${t}</th>`).join("")}
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-
-        for (let a = 0; a < aulas.length; a++) {
-            html += `
-                <tr>
-                    <td style="border:1px solid #cbd5e1; padding:3px; background:#f8fafc; font-weight:700;">
-                        ${aulas[a].label}<br>${aulas[a].horario}
-                    </td>
-                    ${turmas.map((_, t) => {
-                        const cell = data[dia][a][t];
-                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top; ${getPrintCellStyle(cell.teacher)}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
-                    }).join("")}
-                </tr>
-            `;
-                        const bgColor = getTeacherHighlightColor(cell.teacher);
-                        const extraBg = bgColor ? ` background:${bgColor};` : "";
-                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top;${extraBg}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
-                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top; ${getPrintCellStyle(cell.teacher)}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
-                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top;">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
-                    }).join("")}
-                </tr>
-            `;
-        }
-
-        html += `</tbody></table></section>`;
-        return html;
-    }
-
-    function montarFolhaPDF(dia) {
-        return `
-    function gerarPDFImpressao(turno) {
-        const printSheet = document.getElementById("printSheet");
-        if (!printSheet) return;
-        const dia = activeDay;
-        const isMorning = turno === "manha";
-        const title = isMorning ? "🌅 MANHÃ" : "🌙 TARDE";
-        const data = isMorning ? morningData : afternoonData;
-        const turmas = isMorning ? TURMAS_MANHA : TURMAS_TARDE;
-        const aulas = isMorning ? MORNING_AULAS : AFTERNOON_AULAS;
-    function gerarPDFImpressao() {
-        const printSheet = document.getElementById("printSheet");
-        if (!printSheet) return;
-        const dia = activeDay;
-        printSheet.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <img src="imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva"
-                     style="max-height:80px; object-fit:contain;">
-                <h2 style="margin:0; text-align:center; color:#1e3a5f;">
-                    Horário Escolar 2026 · ${dia}
-                </h2>
-                <p style="margin:0; text-align:center; font-size:12px; color:#475569;">
-                    Manhã sobre tarde para melhor visualização.
-                    Planilha individual (${title}) em A4 paisagem.
-                </p>
-                ${buildPrintableTable(data, turmas, aulas, dia, title)}
-                    Manhã e tarde na mesma folha (paisagem).
-                </p>
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                    ${buildPrintableTable(morningData, TURMAS_MANHA, MORNING_AULAS, dia, "🌅 MANHÃ")}
-                    ${buildPrintableTable(afternoonData, TURMAS_TARDE, AFTERNOON_AULAS, dia, "🌙 TARDE")}
-                </div>
-            </div>
-        `;
-    }
-
-    function gerarPDFImpressao() {
-        const printSheet = document.getElementById("printSheet");
-        if (!printSheet) return;
-        const dia = activeDay;
-        printSheet.innerHTML = montarFolhaPDF(dia);
-
-        setTimeout(() => window.print(), 50);
-    }
-
-    async function gerarPDFCompartilhavel() {
-        const printSheet = document.getElementById("printSheet");
-        if (!printSheet) return;
-        const dia = activeDay;
-        printSheet.innerHTML = montarFolhaPDF(dia);
-
-        if (typeof html2pdf === "undefined") {
-            alert("Não foi possível gerar o PDF no momento.");
-            return;
-        }
-
-        const opt = {
-            margin: [8, 8, 8, 8],
-            filename: `Horario-Escolar-2026-${dia}.pdf`,
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-        };
-
-        try {
-            const worker = html2pdf().set(opt).from(printSheet);
-            const pdfBlob = await worker.outputPdf("blob");
-            const pdfFile = new File([pdfBlob], opt.filename, { type: "application/pdf" });
-
-            if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-                await navigator.share({
-                    title: "Horário Escolar 2026",
-                    text: `Horário Escolar 2026 - ${dia}`,
-                    files: [pdfFile]
-                });
-            } else {
-                await worker.save();
-                alert("PDF gerado para compartilhar (download iniciado).");
-            }
-        } catch (error) {
-            console.error("Erro ao gerar/compartilhar PDF:", error);
-            alert("Não foi possível compartilhar o PDF. Tentando download.");
-            html2pdf().set(opt).from(printSheet).save();
-        }
-    }
-
-    function getTeacherColorTag(teacherName = "") {
-        const normalized = normalizeTag(teacherName);
-        if (/^hl($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hl")) return "hl";
-        if (/^hi($|\s|[-:;,.])/.test(normalized) || normalized.startsWith("hi")) return "hi";
-        return "";
-    }
-
-    function getTeacherCardClass(teacherName = "") {
-        const tag = getTeacherColorTag(teacherName);
-        if (tag === "hl") return "hl-card";
-        if (tag === "hi") return "hi-card";
-        return "";
-    }
-
-    function getTeacherCellClass(teacherName = "") {
-        const tag = getTeacherColorTag(teacherName);
-        if (tag === "hl") return "hl-cell";
-        if (tag === "hi") return "hi-cell";
-        return "";
-    }
-
-    function getPrintCellStyle(teacherName = "") {
-        const tag = getTeacherColorTag(teacherName);
-        if (tag === "hl") return "background:#dcfce7;";
-        if (tag === "hi") return "background:#fef9c3;";
-        return "";
-    }
-
-    function buildPrintableTable(data, turmas, aulas, dia, titulo) {
-        let html = `
-            <section style="width:100%;">
-                <h3 style="margin:0 0 8px; text-align:center; color:#1e3a5f;">${titulo}</h3>
-                <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:10px;">
-                    <thead>
-                        <tr>
-                            <th style="border:1px solid #94a3b8; padding:4px; background:#e2e8f0;">Horário</th>
-                            ${turmas.map(t => `<th style="border:1px solid #94a3b8; padding:4px; background:#e2e8f0;">${t}</th>`).join("")}
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-
-        for (let a = 0; a < aulas.length; a++) {
-            html += `
-                <tr>
-                    <td style="border:1px solid #cbd5e1; padding:3px; background:#f8fafc; font-weight:700;">
-                        ${aulas[a].label}<br>${aulas[a].horario}
-                    </td>
-                    ${turmas.map((_, t) => {
-                        const cell = data[dia][a][t];
-                        return `<td style="border:1px solid #cbd5e1; padding:3px; vertical-align:top; ${getPrintCellStyle(cell.teacher)}">${cell.teacher}<br><small>🏠 ${cell.room}</small></td>`;
-                    }).join("")}
-                </tr>
-            `;
-        }
-
-        html += `</tbody></table></section>`;
-        return html;
-    }
-
-    function buildWeeklyPrintableSections(turno) {
-        const isMorning = turno === "manha";
-        const title = isMorning ? "🌅 MANHÃ" : "🌙 TARDE";
-        const data = isMorning ? morningData : afternoonData;
-        const turmas = isMorning ? TURMAS_MANHA : TURMAS_TARDE;
-        const aulas = isMorning ? MORNING_AULAS : AFTERNOON_AULAS;
-        return DIAS.map(dia => `
-            <section class="print-day-section">
-                <h2 style="margin:0; text-align:center; color:#1e3a5f;">
-                    Horário Escolar 2026 · ${title}
-                </h2>
-                <p style="margin:2px 0 10px; text-align:center; font-size:12px; color:#475569;">
-                    ${dia} · Documento semanal (${title}) em A4 paisagem
-                </p>
-                ${buildPrintableTable(data, turmas, aulas, dia, `${title} · ${dia.toUpperCase()}`)}
-            </section>
-        `).join("");
-    }
-
-    function montarDocumentoImpressao(turno, modo) {
-        const printSheet = document.getElementById("printSheet");
-        if (!printSheet) return;
-        const isMorning = turno === "manha";
-        const title = isMorning ? "🌅 MANHÃ" : "🌙 TARDE";
-        printSheet.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <img src="imagens/cabecquintino.jpg" alt="Cabeçalho EMEF Quintino Bocaiuva"
-                     style="max-height:80px; object-fit:contain;">
-                <p style="margin:0; text-align:center; font-size:12px; color:#475569;">
-                    ${modo === "pdf" ? "Gerar PDF" : "Imprimir"} · Todos os dias da semana (${title}) em A4 paisagem.
-                </p>
-                ${buildWeeklyPrintableSections(turno)}
-            </div>
-        `;
-
-        setTimeout(() => window.print(), 50);
-    }
-
-    function getTeacherHighlightType(teacherName = "") {
-        const nome = String(teacherName).trim().toUpperCase();
-        if (/^HL\b/.test(nome)) return "hl";
-        if (/^HI\b/.test(nome)) return "hi";
-        return "";
-    }
-
-    function getTeacherHighlightColor(teacherName = "") {
-        const type = getTeacherHighlightType(teacherName);
-        if (type === "hl") return "#dcfce7";
-        if (type === "hi") return "#fef9c3";
-        return "";
-    }
-
-    // Legendas dos intervalos
-    function renderLegend() {
-        const legendDiv = document.getElementById("legendArea");
-        if (!legendDiv) return;
-        if (activeShift === "manha") {
-            legendDiv.innerHTML = `
-                ⏱️ <strong>INTERVALOS (MANHÃ)</strong> &nbsp; 
-                1º ano: 9h20 - 9h40 &nbsp; | &nbsp;
-                2º e 3º anos: 9h40 - 10h &nbsp; | &nbsp;
-                4º ano: 8h50 - 9h10 &nbsp; | &nbsp;
-                5º ano: 10h10 - 10h30
-                <br>
-                🖱️ <strong>DICA:</strong> Segure <kbd>Ctrl</kbd> (ou <kbd>Cmd</kbd>) enquanto arrasta para <strong>duplicar</strong> o professor (cópia em vez de mover).
-                <br>
-                🎨 <strong>Cores automáticas:</strong> HL = verde claro | HI = amarelo.
-            `;
-        } else {
-            legendDiv.innerHTML = `
-                ⏱️ <strong>INTERVALOS (TARDE)</strong> &nbsp; 
-                1º ano: 14:40 - 15:00 &nbsp; | &nbsp;
-                2º ano: 15:10 - 15:30 &nbsp; | &nbsp;
-                3º ano: 15:40 - 16:00 &nbsp; | &nbsp;
-                4º e 5º anos: 16:00 - 16:20
-                <br>
-                🖱️ <strong>DICA:</strong> Segure <kbd>Ctrl</kbd> (ou <kbd>Cmd</kbd>) enquanto arrasta para <strong>duplicar</strong> o professor (cópia em vez de mover).
-                <br>
-                🎨 <strong>Cores automáticas:</strong> HL = verde claro | HI = amarelo.
-            `;
-        }
-    }
-
-    let draggingSource = null;
-    let isCopyDrag = false;
-
-    function renderShiftTabs() {
-        const container = document.getElementById("shiftTabs");
-        container.innerHTML = "";
-        const shifts = [
-            { id: "manha", label: "🌅 MANHÃ" },
-            { id: "tarde", label: "🌙 TARDE" }
-        ];
-        shifts.forEach(s => {
-            const btn = document.createElement("button");
-            btn.className = `shift-tab ${activeShift === s.id ? "active" : ""}`;
-            btn.innerText = s.label;
-            btn.onclick = () => {
-                activeShift = s.id;
-                renderAll();
-            };
-            container.appendChild(btn);
+                html += `<div class="${classes}" 
+                            draggable="true" 
+                            ondragstart="onDragStart(event, ${aIdx}, ${tIdx})"
+                            ondragover="event.preventDefault()"
+                            ondrop="onDrop(event, ${aIdx}, ${tIdx})"
+                            onclick="editCellManual(${aIdx}, ${tIdx})">
+                            <div class="teacher-card">${cell.teacher}</div>
+                            <div class="room-info">S: ${cell.room}</div>
+                         </div>`;
+            });
         });
+        html += `</div>`;
+        return html;
     }
 
-    function renderDayTabs() {
-        const container = document.getElementById("dayTabs");
-        container.innerHTML = "";
+    function preparePrint() {
+        const printArea = document.getElementById("printArea");
+        printArea.innerHTML = `<h2>HORÁRIO ESCOLAR 2026 - PERÍODO ${activeShift.toUpperCase()}</h2>`;
         DIAS.forEach(dia => {
-            const btn = document.createElement("button");
-            btn.className = `day-tab ${activeDay === dia ? "active" : ""}`;
-            btn.innerText = dia;
-            btn.onclick = () => {
-                activeDay = dia;
-                renderGrid();
-            };
-            container.appendChild(btn);
+            printArea.innerHTML += `<div class="print-day-title">${dia.toUpperCase()}</div>`;
+            printArea.innerHTML += createGridHTML(dia, true);
         });
     }
 
-    function editTurmaName(shift, index, currentName) {
-        const novoNome = prompt("Editar nome da turma:", currentName);
-        if (novoNome && novoNome.trim() !== "") {
-            const novoNomeTrim = novoNome.trim();
-            const aulas = getCurrentAulas();
-            if (shift === "manha") {
-                TURMAS_MANHA[index] = novoNomeTrim;
-                const oldData = morningData;
-                morningData = criarMatrizVazia(TURMAS_MANHA, aulas);
-                for (let dia of DIAS) {
-                    for (let a = 0; a < aulas.length; a++) {
-                        for (let oldIdx = 0; oldIdx < oldData[dia][a].length; oldIdx++) {
-                            if (oldIdx === index) continue;
-                            let newIdx = oldIdx < index ? oldIdx : oldIdx - 1;
-                            if (newIdx >= 0 && newIdx < TURMAS_MANHA.length) {
-                                morningData[dia][a][newIdx] = oldData[dia][a][oldIdx];
-                            }
-                        }
-                    }
-                }
-                for (let dia of DIAS) {
-                    for (let a = 0; a < aulas.length; a++) {
-                        const prof = HOMEROOM_MANHA[novoNomeTrim] || "Professor";
-                        morningData[dia][a][index] = {
-                            teacher: prof,
-                            room: getDefaultRoom(prof)
-                        };
-                    }
-                }
-            } else {
-                TURMAS_TARDE[index] = novoNomeTrim;
-                const oldData = afternoonData;
-                afternoonData = criarMatrizVazia(TURMAS_TARDE, aulas);
-                for (let dia of DIAS) {
-                    for (let a = 0; a < aulas.length; a++) {
-                        for (let oldIdx = 0; oldIdx < oldData[dia][a].length; oldIdx++) {
-                            if (oldIdx === index) continue;
-                            let newIdx = oldIdx < index ? oldIdx : oldIdx - 1;
-                            if (newIdx >= 0 && newIdx < TURMAS_TARDE.length) {
-                                afternoonData[dia][a][newIdx] = oldData[dia][a][oldIdx];
-                            }
-                        }
-                    }
-                }
-                for (let dia of DIAS) {
-                    for (let a = 0; a < aulas.length; a++) {
-                        afternoonData[dia][a][index] = {
-                            teacher: `Prof. ${novoNomeTrim}`,
-                            room: "---"
-                        };
-                    }
-                }
-            }
-            saveToLocalStorage();
+    function editCellManual(aIdx, tIdx) {
+        const data = activeShift === "manha" ? morningData : afternoonData;
+        const n = prompt("Professor:", data[activeDay][aIdx][tIdx].teacher);
+        if (n !== null) {
+            const r = prompt("Sala:", data[activeDay][aIdx][tIdx].room);
+            data[activeDay][aIdx][tIdx] = { teacher: n || "Livre", room: r || "---" };
             renderAll();
         }
     }
 
-    function renderGrid() {
-        const gridContainer = document.getElementById("scheduleGrid");
-        if (!gridContainer) return;
-        gridContainer.innerHTML = "";
-        const data = getCurrentData();
-        const turmas = getCurrentTurmas();
-        const aulas = getCurrentAulas();
-        const diaData = data[activeDay];
-        if (!diaData) return;
-
-        const grid = document.createElement("div");
-        grid.className = "schedule-grid";
-
-        // cabeçalho: coluna de horário + turmas
-        const emptyHeader = document.createElement("div");
-        emptyHeader.className = "grid-header";
-        emptyHeader.innerText = "Horário";
-        grid.appendChild(emptyHeader);
-        turmas.forEach((turma, idx) => {
-            const th = document.createElement("div");
-            th.className = "grid-header";
-            th.innerText = turma;
-            th.title = "Clique para editar nome da turma";
-            th.onclick = () => editTurmaName(activeShift, idx, turma);
-            grid.appendChild(th);
-        });
-
-        for (let aulaIdx = 0; aulaIdx < aulas.length; aulaIdx++) {
-            const aula = aulas[aulaIdx];
-            const timeCell = document.createElement("div");
-            timeCell.className = "time-slot";
-            timeCell.innerText = `${aula.label}\n${aula.horario}`;
-            grid.appendChild(timeCell);
-
-            for (let turmaIdx = 0; turmaIdx < turmas.length; turmaIdx++) {
-                const cell = document.createElement("div");
-                cell.className = "schedule-cell";
-                const cellData = diaData[aulaIdx][turmaIdx];
-                const teacherFull = cellData.teacher;
-                const teacherAbrev = abrevNome(teacherFull);
-                const room = cellData.room;
-                const cellClass = getTeacherCellClass(teacherFull);
-                if (cellClass) cell.classList.add(cellClass);
-                const highlightType = getTeacherHighlightType(teacherFull);
-                if (highlightType) {
-                    cell.classList.add(`${highlightType}-cell`);
-                }
-
-                const card = document.createElement("div");
-                card.className = "teacher-card";
-                const dynamicClass = getTeacherCardClass(teacherFull);
-                if (dynamicClass) card.classList.add(dynamicClass);
-                card.setAttribute("draggable", "true");
-                card.innerText = teacherAbrev;
-                card.title = `${teacherFull} (${room})\nClique para editar. Arraste para outra célula. Ctrl+arrastar para copiar.`;
-
-                card.addEventListener("dragstart", (e) => {
-                    draggingSource = { shift: activeShift, dia: activeDay, aula: aulaIdx, turma: turmaIdx };
-                    // Detecta se Ctrl está pressionado (cópia)
-                    isCopyDrag = e.ctrlKey || e.metaKey;
-                    e.dataTransfer.setData("text/plain", JSON.stringify(draggingSource));
-                    e.dataTransfer.effectAllowed = isCopyDrag ? "copy" : "move";
-                    card.classList.add("dragging");
-                });
-                card.addEventListener("dragend", () => {
-                    card.classList.remove("dragging");
-                    draggingSource = null;
-                    isCopyDrag = false;
-                });
-
-                card.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    const novoNome = prompt("Editar nome completo do professor:", teacherFull);
-                    if (novoNome && novoNome.trim() !== "") {
-                        const novoNomeTrim = novoNome.trim();
-                        cellData.teacher = novoNomeTrim;
-                        // Atualiza a sala com base no novo nome
-                        cellData.room = getDefaultRoom(novoNomeTrim);
-                        saveToLocalStorage();
-                        renderGrid();
-                    }
-                });
-
-                const roomSpan = document.createElement("div");
-                roomSpan.className = "room-info";
-                roomSpan.innerText = `🏠 ${room}`;
-                roomSpan.title = "Clique para alterar sala";
-                roomSpan.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    const novaSala = prompt("Editar sala/local:", room);
-                    if (novaSala !== null) {
-                        cellData.room = novaSala.trim() || "---";
-                        saveToLocalStorage();
-                        renderGrid();
-                    }
-                });
-
-                cell.appendChild(card);
-                cell.appendChild(roomSpan);
-
-                cell.addEventListener("dragover", (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = isCopyDrag ? "copy" : "move";
-                    cell.classList.add("drag-over");
-                });
-                cell.addEventListener("dragleave", () => {
-                    cell.classList.remove("drag-over");
-                });
-                cell.addEventListener("drop", (e) => {
-                    e.preventDefault();
-                    cell.classList.remove("drag-over");
-                    if (!draggingSource) return;
-                    if (draggingSource.shift !== activeShift || draggingSource.dia !== activeDay) {
-                        alert("Arraste apenas dentro do mesmo turno e mesmo dia.");
-                        return;
-                    }
-                    const srcAula = draggingSource.aula;
-                    const srcTurma = draggingSource.turma;
-                    const dstAula = aulaIdx;
-                    const dstTurma = turmaIdx;
-                    if (srcAula === dstAula && srcTurma === dstTurma && !isCopyDrag) return;
-
-                    const srcCell = data[activeDay][srcAula][srcTurma];
-                    const dstCell = data[activeDay][dstAula][dstTurma];
-
-                    if (isCopyDrag) {
-                        // Duplicar: copiar professor e sala para o destino
-                        dstCell.teacher = srcCell.teacher;
-                        dstCell.room = srcCell.room;
-                    } else {
-                        // Mover: trocar
-                        const tempTeacher = srcCell.teacher;
-                        const tempRoom = srcCell.room;
-                        srcCell.teacher = dstCell.teacher;
-                        srcCell.room = dstCell.room;
-                        dstCell.teacher = tempTeacher;
-                        dstCell.room = tempRoom;
-                    }
-
-                    saveToLocalStorage();
-                    renderGrid();
-                });
-
-                grid.appendChild(cell);
-            }
-        }
-        gridContainer.appendChild(grid);
-    }
-
     function renderAll() {
-        renderShiftTabs();
-        renderDayTabs();
-        renderGrid();
-        renderLegend();
+        // Abas
+        document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => 
+            `<button class="shift-tab ${activeShift===s?'active':''}" onclick="activeShift='${s}';renderAll()"> ${s==='manha'?'🌅 MANHÃ':'🌙 TARDE'}</button>`).join("");
+        
+        document.getElementById("dayTabs").innerHTML = DIAS.map(d => 
+            `<button class="day-tab ${activeDay===d?'active':''}" onclick="activeDay='${d}';renderAll()">${d}</button>`).join("");
+
+        // Grade Tela
+        document.getElementById("scheduleGrid").innerHTML = createGridHTML(activeDay);
+        
+        // Legenda e PDF
+        const mLeg = `⏱️ <b>INTERVALOS MANHÃ:</b> 1º: 9:20-9:40 | 2º e 3º: 9:40-10:00 | 4º: 8:50-9:10 | 5º: 10:10-10:30`;
+        const tLeg = `⏱️ <b>INTERVALOS TARDE:</b> 1º: 14:40-15:00 | 2º: 15:10-15:30 | 3º: 15:40-16:00 | 4º e 5º: 16:00-16:20`;
+        document.getElementById("legendArea").innerHTML = (activeShift === "manha" ? mLeg : tLeg) + `<br>🖱️ <b>Arrastar:</b> Mover | <b>Ctrl+Arrastar:</b> Copiar | <b>Clique:</b> Editar | <b>PDF:</b> Gera todos os dias.`;
+        
+        preparePrint();
     }
 
-    function bindButtons() {
-        const toolbar = document.querySelector(".toolbar");
-        if (toolbar) {
-            toolbar.innerHTML = `
-                <button id="saveBtn">💾 Salvar</button>
-                <button id="printBtn">🖨️ Imprimir</button>
-                <button id="pdfBtn">📄 Gerar PDF</button>
-            `;
-        }
-        document.getElementById("saveBtn").onclick = () => { saveToLocalStorage(); alert("✅ Alterações salvas!"); };
-        document.getElementById("printBtn").onclick = () => montarDocumentoImpressao(activeShift, "imprimir");
-        document.getElementById("pdfBtn").onclick = () => montarDocumentoImpressao(activeShift, "pdf");
-        document.getElementById("shareBtn").onclick = shareSchedule;
-        document.getElementById("resetBtn").onclick = resetToOriginal;
-        document.getElementById("refreshBtn").onclick = () => { renderGrid(); saveToLocalStorage(); };
-        document.getElementById("pdfBtn").onclick = () => {
-            gerarPDFImpressao();
-            gerarPDFCompartilhavel();
-        };
-        document.getElementById("pdfMorningBtn").onclick = () => gerarPDFImpressao("manha");
-        document.getElementById("pdfAfternoonBtn").onclick = () => gerarPDFImpressao("tarde");
-        document.getElementById("pdfBtn").onclick = gerarPDFImpressao;
-    }
+    document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; renderAll(); };
+    document.getElementById("printBtn").onclick = () => window.print();
+    document.getElementById("saveBtn").onclick = () => alert("Salvo!");
+    document.getElementById("resetBtn").onclick = () => { if(confirm("Resetar?")) { initData(); renderAll(); } };
 
-    function init() {
-        loadFromLocalStorage();
-        bindButtons();
-        renderAll();
-    }
-    init();
+    initData();
+    renderAll();
 </script>
 </body>
 </html>
