@@ -104,7 +104,11 @@
     window.saveAuto = function() {
         if(!window.isEditing) return;
         document.getElementById('cloudStatus').innerText = "🔄 Salvando...";
-        window.config[window.activeShift].legenda = document.getElementById("footerLegend").innerText;
+        
+        // SALVA A LEGENDA DENTRO DO DIA ESPECÍFICO DO TURNO
+        if(!window.config[window.activeShift].legendasPorDia) window.config[window.activeShift].legendasPorDia = {};
+        window.config[window.activeShift].legendasPorDia[window.activeDay] = document.getElementById("footerLegend").innerText;
+        
         set(dbRef, {config: window.config, userPass: window.userPass})
             .then(() => {
                 document.getElementById('cloudStatus').innerText = "✅ Salvo";
@@ -140,12 +144,12 @@
         manha: { 
             aulas: [{l:"1ª",h:"7:10"},{l:"2ª",h:"8:00"},{l:"3ª",h:"8:50"},{l:"4ª",h:"10:00"},{l:"5ª",h:"10:50"}],
             turmas: ["1ºA","1ºB","1ºC","1ºD","1ºE","2ºA","2ºB","2ºC","3ºA","3ºB","4ºA","4ºB","4ºC","5ºA","5ºB","5ºC"],
-            data: {}, legenda: "⏱️ INTERVALOS MANHÃ: ..."
+            data: {}, legendasPorDia: {}
         },
         tarde: {
             aulas: [{l:"1ª",h:"13:30"},{l:"2ª",h:"14:20"},{l:"3ª",h:"15:10"},{l:"4ª",h:"16:20"},{l:"5ª",h:"17:10"}],
             turmas: ["1ºE","1ºF","1ºG","2ºD","2ºE","2ºF","2ºG","3ºD","3ºE","3ºF","4ºD","4ºE","4ºF","5ºD","5ºE","5ºF"],
-            data: {}, legenda: "⏱️ INTERVALOS TARDE: ..."
+            data: {}, legendasPorDia: {}
         }
     };
 
@@ -155,6 +159,8 @@
                 if(!window.config[s].data[d]) {
                     window.config[s].data[d] = Array(5).fill().map(() => Array(16).fill().map(() => ({ teacher: "Livre", room: "---" })));
                 }
+                if(!window.config[s].legendasPorDia) window.config[s].legendasPorDia = {};
+                if(!window.config[s].legendasPorDia[d]) window.config[s].legendasPorDia[d] = `⏱️ INTERVALOS ${s.toUpperCase()} (${d}): ...`;
             });
         });
         window.renderAll();
@@ -165,10 +171,7 @@
             window.isEditing = true;
             document.getElementById("mainBody").classList.add("edit-mode");
             document.getElementById("lockBtn").classList.add("unlocked");
-            
-            // FORÇA O RODAPÉ A SER EDITÁVEL NO MOMENTO DO LOGIN
             document.getElementById("footerLegend").contentEditable = "true";
-            
             document.getElementById("editButtons").style.display = "flex";
             document.getElementById("loginOverlay").style.display = "none";
             window.renderAll();
@@ -240,10 +243,17 @@
         draggedData = null; window.saveAuto(); window.renderAll();
     }
 
-    window.copyFullDay = function() { dayClipboard = JSON.parse(JSON.stringify(window.config[window.activeShift].data[window.activeDay])); alert("Copiado!"); }
+    window.copyFullDay = function() { 
+        dayClipboard = {
+            data: JSON.parse(JSON.stringify(window.config[window.activeShift].data[window.activeDay])),
+            legenda: window.config[window.activeShift].legendasPorDia[window.activeDay]
+        };
+        alert("Dia completo copiado (grade + rodapé)!"); 
+    }
     window.pasteFullDay = function() {
         if(!dayClipboard) return;
-        window.config[window.activeShift].data[window.activeDay] = JSON.parse(JSON.stringify(dayClipboard));
+        window.config[window.activeShift].data[window.activeDay] = JSON.parse(JSON.stringify(dayClipboard.data));
+        window.config[window.activeShift].legendasPorDia[window.activeDay] = dayClipboard.legenda;
         window.saveAuto(); window.renderAll();
     }
 
@@ -252,8 +262,9 @@
         document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${window.activeDay===d?'active':''}" onclick="window.activeDay='${d}';window.renderAll()">${d}</div>`).join("");
         document.getElementById("scheduleGrid").innerHTML = createGridHTML(window.activeDay, window.activeShift);
         
-        // CARREGA O TEXTO DO TURNO ATUAL NO RODAPÉ
-        document.getElementById("footerLegend").innerText = window.config[window.activeShift].legenda || "⏱️ INTERVALOS...";
+        // CARREGA A LEGENDA ESPECÍFICA DO DIA E TURNO ATUAL
+        const legendas = window.config[window.activeShift].legendasPorDia || {};
+        document.getElementById("footerLegend").innerText = legendas[window.activeDay] || `⏱️ INTERVALOS...`;
     }
 
     document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; window.renderAll(); };
