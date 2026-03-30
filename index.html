@@ -24,13 +24,8 @@
         .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr)); border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 20px; background: white; }
         .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; min-height: 45px; display: flex; align-items: center; justify-content: center; }
         
-        /* Estilo para quando estiver logado */
         .edit-mode .grid-header:not(:first-child), 
-        .edit-mode .time-slot { 
-            background: #fff7ed !important; 
-            cursor: pointer !important; 
-            border: 1px dashed #f59e0b !important;
-        }
+        .edit-mode .time-slot { background: #fff7ed !important; cursor: pointer !important; border: 1px dashed #f59e0b !important; }
 
         .schedule-cell { border: 0.5px solid #e2e8f0; padding: 4px; min-height: 70px; cursor: grab; position: relative; text-align: center; }
         .cell-hi { background-color: #ffcfcf !important; border: 1.5px solid #ef4444 !important; }
@@ -55,8 +50,8 @@
             <option value="CRD">CRD: Larissa</option>
         </select>
         <input type="password" id="passInput" placeholder="Senha">
-        <button class="btn btn-navy" style="width:100%" onclick="tryLogin()">Entrar</button>
-        <button class="btn" style="background:none; color:gray" onclick="closeLogin()">Cancelar</button>
+        <button class="btn btn-navy" style="width:100%" onclick="window.tryLogin()">Entrar</button>
+        <button class="btn" style="background:none; color:gray" onclick="window.closeLogin()">Cancelar</button>
     </div>
 </div>
 
@@ -68,12 +63,12 @@
     <div class="toolbar">
         <div class="search-container">
             <input type="text" id="teacherSearch" class="search-input" placeholder="🔍 Buscar professor...">
-            <button id="lockBtn" class="btn btn-lock" onclick="openLogin()">🔒</button>
+            <button id="lockBtn" class="btn btn-lock" onclick="window.openLogin()">🔒</button>
             <span id="cloudStatus" class="status-indicator">⏳ Conectando...</span>
         </div>
         <div id="editButtons" style="display:none; gap:8px;">
-            <button class="btn btn-navy" onclick="copyFullDay()">📋 Copiar Dia</button>
-            <button class="btn btn-navy" onclick="pasteFullDay()">📥 Colar Dia</button>
+            <button class="btn btn-navy" onclick="window.copyFullDay()">📋 Copiar Dia</button>
+            <button class="btn btn-navy" onclick="window.pasteFullDay()">📥 Colar Dia</button>
         </div>
         <button class="btn btn-red" onclick="window.print()">🖨️ PDF</button>
     </div>
@@ -82,10 +77,9 @@
     <div class="tabs-row" id="dayTabs"></div>
     
     <div id="scheduleGrid"></div>
-    <div id="printArea" style="display:none;"></div>
 
     <div class="footer-area">
-        <div class="editable-legend" id="footerLegend" contenteditable="false" oninput="window.saveAuto()" onblur="window.saveAuto()">
+        <div class="editable-legend" id="footerLegend" contenteditable="false" oninput="window.saveAuto()">
             ⏱️ INTERVALOS...
         </div>
     </div>
@@ -113,7 +107,10 @@
     window.saveAuto = function() {
         if(!window.isEditing) return;
         document.getElementById('cloudStatus').innerText = "🔄 Salvando...";
+        
+        // Captura o texto do rodapé antes de salvar
         window.config[window.activeShift].legenda = document.getElementById("footerLegend").innerText;
+        
         set(dbRef, {config: window.config, userPass: window.userPass})
             .then(() => {
                 document.getElementById('cloudStatus').innerText = "✅ Salvo";
@@ -186,24 +183,18 @@
 
     window.editTurma = function(idx) {
         if(!window.isEditing) return;
-        const atual = window.config[window.activeShift].turmas[idx];
-        const novo = prompt("Renomear Turma:", atual);
-        if(novo && novo !== atual) {
-            window.config[window.activeShift].turmas[idx] = novo;
-            window.saveAuto();
-            window.renderAll();
-        }
+        const novo = prompt("Renomear Turma:", window.config[window.activeShift].turmas[idx]);
+        if(novo) { window.config[window.activeShift].turmas[idx] = novo; window.saveAuto(); window.renderAll(); }
     }
 
     window.editHora = function(idx) {
         if(!window.isEditing) return;
         const aula = window.config[window.activeShift].aulas[idx];
-        const novaL = prompt("Rótulo da Aula (ex: 1ª):", aula.l);
-        const novaH = prompt("Horário da Aula (ex: 07:10):", aula.h);
+        const novaL = prompt("Rótulo da Aula:", aula.l);
+        const novaH = prompt("Horário da Aula:", aula.h);
         if(novaL || novaH) {
             window.config[window.activeShift].aulas[idx] = {l: novaL || aula.l, h: novaH || aula.h};
-            window.saveAuto();
-            window.renderAll();
+            window.saveAuto(); window.renderAll();
         }
     }
 
@@ -211,11 +202,7 @@
         const shift = window.config[shiftKey];
         const gridData = shift.data[dia];
         let html = `<div class="schedule-grid"><div class="grid-header">Horas</div>`;
-        
-        shift.turmas.forEach((t, i) => {
-            html += `<div class="grid-header" onclick="window.editTurma(${i})">${t}</div>`;
-        });
-
+        shift.turmas.forEach((t, i) => html += `<div class="grid-header" onclick="window.editTurma(${i})">${t}</div>`);
         shift.aulas.forEach((aula, aIdx) => {
             html += `<div class="time-slot" onclick="window.editHora(${aIdx})">${aula.l}<br>${aula.h}</div>`;
             shift.turmas.forEach((turma, tIdx) => {
@@ -225,8 +212,7 @@
                 if (prof.includes("HI")) classes += " cell-hi";
                 if (prof.includes("HL")) classes += " cell-hl";
                 if (searchTerm && prof !== "LIVRE" && prof.includes(searchTerm.toUpperCase())) classes += " cell-highlight";
-                
-                html += `<div class="${classes}" draggable="${window.isEditing}" ondragstart="handleDragStart(event, ${aIdx}, ${tIdx})" ondragover="event.preventDefault()" ondrop="handleDrop(event, ${aIdx}, ${tIdx})" onclick="editCell(${aIdx}, ${tIdx})">
+                html += `<div class="${classes}" draggable="${window.isEditing}" ondragstart="handleDragStart(event, ${aIdx}, ${tIdx})" ondragover="event.preventDefault()" ondrop="handleDrop(event, ${aIdx}, ${tIdx})" onclick="window.editCell(${aIdx}, ${tIdx})">
                             <strong>${cell.teacher}</strong><br><small>S: ${cell.room}</small>
                          </div>`;
             });
@@ -241,8 +227,7 @@
         if (n !== null) {
             const r = prompt("Sala:", data.room);
             window.config[window.activeShift].data[window.activeDay][aIdx][tIdx] = { teacher: n || "Livre", room: r || "---" };
-            window.saveAuto();
-            window.renderAll();
+            window.saveAuto(); window.renderAll();
         }
     }
 
@@ -255,24 +240,25 @@
         if(!window.isEditing || !draggedData) return;
         if (!e.ctrlKey) window.config[window.activeShift].data[window.activeDay][draggedData.aIdx][draggedData.tIdx] = { teacher: "Livre", room: "---" };
         window.config[window.activeShift].data[window.activeDay][aIdx][tIdx] = draggedData.content;
-        draggedData = null;
-        window.saveAuto();
-        window.renderAll();
+        draggedData = null; window.saveAuto(); window.renderAll();
     }
 
     window.copyFullDay = function() { dayClipboard = JSON.parse(JSON.stringify(window.config[window.activeShift].data[window.activeDay])); alert("Copiado!"); }
     window.pasteFullDay = function() {
         if(!dayClipboard) return;
         window.config[window.activeShift].data[window.activeDay] = JSON.parse(JSON.stringify(dayClipboard));
-        window.saveAuto();
-        window.renderAll();
+        window.saveAuto(); window.renderAll();
     }
 
     window.renderAll = function() {
         document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => `<div class="tab ${window.activeShift===s?'active':''}" onclick="window.activeShift='${s}';window.renderAll()">${s.toUpperCase()}</div>`).join("");
         document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${window.activeDay===d?'active':''}" onclick="window.activeDay='${d}';window.renderAll()">${d}</div>`).join("");
         document.getElementById("scheduleGrid").innerHTML = createGridHTML(window.activeDay, window.activeShift);
-        document.getElementById("footerLegend").innerText = window.config[window.activeShift].legenda;
+        
+        // REGRA DE OURO: Atualiza o rodapé conforme o turno, mas evita resetar enquanto digita
+        if (document.activeElement !== document.getElementById("footerLegend")) {
+            document.getElementById("footerLegend").innerText = window.config[window.activeShift].legenda || "⏱️ INTERVALOS...";
+        }
     }
 
     document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; window.renderAll(); };
