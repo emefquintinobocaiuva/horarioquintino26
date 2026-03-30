@@ -23,10 +23,7 @@
         .login-box input, .login-box select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; }
         .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr)); border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 20px; background: white; }
         .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; min-height: 45px; display: flex; align-items: center; justify-content: center; }
-        
-        .edit-mode .grid-header:not(:first-child), 
-        .edit-mode .time-slot { background: #fff7ed !important; cursor: pointer !important; border: 1px dashed #f59e0b !important; }
-
+        .edit-mode .grid-header:not(:first-child), .edit-mode .time-slot { background: #fff7ed !important; cursor: pointer !important; border: 1px dashed #f59e0b !important; }
         .schedule-cell { border: 0.5px solid #e2e8f0; padding: 4px; min-height: 70px; cursor: grab; position: relative; text-align: center; }
         .cell-hi { background-color: #ffcfcf !important; border: 1.5px solid #ef4444 !important; }
         .cell-hl { background-color: #d1fae5 !important; border: 1.5px solid #10b981 !important; }
@@ -79,7 +76,7 @@
     <div id="scheduleGrid"></div>
 
     <div class="footer-area">
-        <div class="editable-legend" id="footerLegend" contenteditable="false" oninput="window.saveAuto()">
+        <div class="editable-legend" id="footerLegend" contenteditable="false" onblur="window.saveAuto()">
             ⏱️ INTERVALOS...
         </div>
     </div>
@@ -107,14 +104,11 @@
     window.saveAuto = function() {
         if(!window.isEditing) return;
         document.getElementById('cloudStatus').innerText = "🔄 Salvando...";
-        
-        // Captura o texto do rodapé antes de salvar
         window.config[window.activeShift].legenda = document.getElementById("footerLegend").innerText;
-        
         set(dbRef, {config: window.config, userPass: window.userPass})
             .then(() => {
                 document.getElementById('cloudStatus').innerText = "✅ Salvo";
-                setTimeout(() => document.getElementById('cloudStatus').innerText = "☁️ Sincronizado", 2000);
+                setTimeout(() => { if(document.getElementById('cloudStatus').innerText === "✅ Salvo") document.getElementById('cloudStatus').innerText = "☁️ Sincronizado"; }, 2000);
             })
             .catch(() => { document.getElementById('cloudStatus').innerText = "❌ Erro"; });
     };
@@ -171,7 +165,10 @@
             window.isEditing = true;
             document.getElementById("mainBody").classList.add("edit-mode");
             document.getElementById("lockBtn").classList.add("unlocked");
-            document.getElementById("footerLegend").contenteditable = "true";
+            
+            // FORÇA O RODAPÉ A SER EDITÁVEL NO MOMENTO DO LOGIN
+            document.getElementById("footerLegend").contentEditable = "true";
+            
             document.getElementById("editButtons").style.display = "flex";
             document.getElementById("loginOverlay").style.display = "none";
             window.renderAll();
@@ -255,10 +252,8 @@
         document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${window.activeDay===d?'active':''}" onclick="window.activeDay='${d}';window.renderAll()">${d}</div>`).join("");
         document.getElementById("scheduleGrid").innerHTML = createGridHTML(window.activeDay, window.activeShift);
         
-        // REGRA DE OURO: Atualiza o rodapé conforme o turno, mas evita resetar enquanto digita
-        if (document.activeElement !== document.getElementById("footerLegend")) {
-            document.getElementById("footerLegend").innerText = window.config[window.activeShift].legenda || "⏱️ INTERVALOS...";
-        }
+        // CARREGA O TEXTO DO TURNO ATUAL NO RODAPÉ
+        document.getElementById("footerLegend").innerText = window.config[window.activeShift].legenda || "⏱️ INTERVALOS...";
     }
 
     document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; window.renderAll(); };
