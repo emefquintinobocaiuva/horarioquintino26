@@ -3,50 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Quintino · Sistema Integrado</title>
+    <title>Gestão de Horários · EMEF Quintino Bocaiuva</title>
     <style>
         * { box-sizing: border-box; }
         body { background: #eef2f8; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
-        
         .header-institucional { width: 100%; max-width: 1400px; margin: 0 auto 15px; display: flex; justify-content: center; background: white; padding: 10px; border-radius: 15px; }
         .header-institucional img { width: 100%; max-width: 1200px; height: auto; }
-        
         .main-container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-
-        /* Status e Login */
-        .status-bar { text-align: center; font-weight: bold; padding: 8px; border-radius: 10px; margin-bottom: 10px; background: #f1f5f9; color: #1e3a5f; font-size: 0.9rem; }
-        #loginOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
-        .login-box { background: white; padding: 30px; border-radius: 20px; width: 320px; text-align: center; }
-        .login-box input, .login-box select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; }
-
-        /* Botões Navy */
-        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
-        .search-input { flex-grow: 1; padding: 12px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; }
-        .btn { border: none; padding: 12px 20px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
+        .search-container { flex-grow: 1; display: flex; gap: 10px; align-items: center; }
+        .search-input { flex-grow: 1; padding: 10px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; }
+        .btn { border: none; padding: 10px 20px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; }
         .btn-navy { background: #1e3a5f; }
-        .btn-save { background: #10b981; }
         .btn-red { background: #ef4444; }
-        .btn-lock { background: #64748b; font-size: 1.2rem; }
+        .btn-lock { background: #64748b; font-size: 1.1rem; padding: 8px 15px; }
         .btn-lock.unlocked { background: #f59e0b; }
-
-        /* Grade e Cores */
-        .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr)); border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 20px; }
-        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; border: 0.5px solid #cbd5e1; min-height: 45px; display: flex; align-items: center; justify-content: center; }
-        .schedule-cell { background: white; border: 0.5px solid #e2e8f0; padding: 4px; min-height: 70px; cursor: pointer; text-align: center; position: relative; }
-        
+        #loginOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 30px; border-radius: 20px; width: 350px; text-align: center; }
+        .login-box input, .login-box select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; }
+        .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr)); border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 20px; background: white; }
+        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; min-height: 45px; display: flex; align-items: center; justify-content: center; }
+        .schedule-cell { border: 0.5px solid #e2e8f0; padding: 4px; min-height: 70px; cursor: grab; position: relative; text-align: center; }
         .cell-hi { background-color: #ffcfcf !important; border: 1.5px solid #ef4444 !important; }
         .cell-hl { background-color: #d1fae5 !important; border: 1.5px solid #10b981 !important; }
-        .cell-highlight { background-color: #bae6fd !important; transform: scale(1.02); z-index: 10; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-
-        /* Abas */
+        .cell-highlight { background-color: #bae6fd !important; transform: scale(1.02); z-index: 5; }
         .tabs-row { display: flex; gap: 8px; margin-bottom: 15px; }
         .tab { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 600; }
         .tab.active { background: #1e3a5f; color: white; }
-
+        .footer-area { margin-top: 20px; padding: 20px; border-radius: 12px; background: #fffbeb; border: 2px dashed #f59e0b; }
+        .editable-legend { font-size: 1rem; min-height: 40px; outline: none; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #fde68a; margin-bottom: 10px; padding: 5px; }
+        .status-indicator { font-size: 0.8rem; font-weight: bold; margin-left: 10px; color: #64748b; }
         @media print {
-            .toolbar, .tabs-row, .status-bar, #loginOverlay { display: none !important; }
             @page { size: A4 landscape; margin: 5mm; }
-            .main-container { box-shadow: none; padding: 0; }
+            .toolbar, .tabs-row, .header-institucional, .status-indicator { display: none !important; }
+            .main-container { box-shadow: none; border: none; padding: 0; }
+            #scheduleGrid { display: none !important; }
+            #printArea { display: block !important; }
+            .print-day-title { background: #1e3a5f; color: white; padding: 5px 15px; margin-top: 20px; border-radius: 5px; text-transform: uppercase; }
         }
     </style>
 </head>
@@ -71,136 +64,206 @@
 </div>
 
 <div class="main-container">
-    <div id="statusMsg" class="status-bar">☁️ Sincronizando com a nuvem...</div>
-    
     <div class="toolbar">
-        <input type="text" id="teacherSearch" class="search-input" placeholder="🔍 Buscar professor...">
-        <button id="lockBtn" class="btn btn-lock" onclick="openLogin()">🔒</button>
-        
-        <div id="editControls" style="display:none; gap:10px;">
-            <button class="btn btn-navy" onclick="copyFullDay()">📋 Copiar Dia</button>
-            <button class="btn btn-navy" onclick="pasteFullDay()">📥 Colar Dia</button>
-            <button class="btn btn-save" onclick="saveToCloud()">💾 SALVAR NA NUVEM</button>
+        <div class="search-container">
+            <input type="text" id="teacherSearch" class="search-input" placeholder="🔍 Buscar professor...">
+            <button id="lockBtn" class="btn btn-lock" onclick="openLogin()">🔒</button>
+            <span id="cloudStatus" class="status-indicator">⏳ Conectando...</span>
         </div>
         
-        <button class="btn btn-red" onclick="window.print()">🖨️ PDF (5 DIAS)</button>
+        <div id="editButtons" style="display:none; gap:8px;">
+            <button class="btn btn-navy" onclick="copyFullDay()">📋 Copiar Dia</button>
+            <button class="btn btn-navy" onclick="pasteFullDay()">📥 Colar Dia</button>
+        </div>
+
+        <button class="btn btn-red" onclick="window.print()">🖨️ PDF (5 Dias)</button>
     </div>
     
     <div class="tabs-row" id="shiftTabs"></div>
     <div class="tabs-row" id="dayTabs"></div>
+    
     <div id="scheduleGrid"></div>
+    <div id="printArea" style="display:none;"></div>
 
-    <div id="footerArea" style="background:#fffbeb; padding:15px; border:2px dashed orange; border-radius:10px; margin-top:20px;">
-        <div id="footerLegend" contenteditable="false" style="font-weight:bold; outline:none;">⏱️ INTERVALOS...</div>
+    <div class="footer-area">
+        <div class="editable-legend" id="footerLegend" contenteditable="false" onblur="saveAuto()">
+            ⏱️ INTERVALOS...
+        </div>
     </div>
 </div>
 
-<script>
-    // === COLE SEU LINK DO GOOGLE ABAIXO ===
-    const DATABASE_URL = "COLE_AQUI_O_LINK_DO_PASSO_3"; 
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
-    let isEditing = false;
-    let userPass = "321"; // Senha padrão
-    let activeShift = "manha";
-    let activeDay = "Segunda";
-    let searchTerm = "";
-    let dayClipboard = null;
+    const firebaseConfig = {
+        apiKey: "AIzaSyCjs0Emwh1Eyqf7pXYEJt9MBfY0Ga8ZJBc",
+        authDomain: "gestao-de-horario.firebaseapp.com",
+        databaseURL: "https://gestao-de-horario-default-rtdb.firebaseio.com",
+        projectId: "gestao-de-horario",
+        storageBucket: "gestao-de-horario.firebasestorage.app",
+        messagingSenderId: "1074574504996",
+        appId: "1:1074574504996:web:87e81456b1460e03a4d4b1",
+        measurementId: "G-638DL9JWS8"
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const dbRef = ref(db, 'horarios_quintino');
 
-    let config = {
-        manha: { data: {}, legenda: "⏱️ INTERVALOS MANHÃ: ...", turmas: ["1ºA","1ºB","1ºC","1ºD","1ºE","2ºA","2ºB","2ºC","3ºA","3ºB","4ºA","4ºB","4ºC","5ºA","5ºB","5ºC"], aulas: [{l:"1ª",h:"7:10"},{l:"2ª",h:"8:00"},{l:"3ª",h:"8:50"},{l:"4ª",h:"10:00"},{l:"5ª",h:"10:50"}] },
-        tarde: { data: {}, legenda: "⏱️ INTERVALOS TARDE: ...", turmas: ["1ºE","1ºF","1ºG","2ºD","2ºE","2ºF","2ºG","3ºD","3ºE","3ºF","4ºD","4ºE","4ºF","5ºD","5ºE","5ºF"], aulas: [{l:"1ª",h:"13:30"},{l:"2ª",h:"14:20"},{l:"3ª",h:"15:10"},{l:"4ª",h:"16:20"},{l:"5ª",h:"17:10"}] }
+    // FUNÇÃO DE AUTO-SALVAMENTO (Acionada em qualquer mudança)
+    window.saveAuto = function() {
+        if(!window.isEditing) return; // Só salva se estiver logado
+        
+        document.getElementById('cloudStatus').innerText = "🔄 Salvando...";
+        
+        window.config[window.activeShift].legenda = document.getElementById("footerLegend").innerText;
+        
+        set(dbRef, {config: window.config, userPass: window.userPass})
+            .then(() => {
+                document.getElementById('cloudStatus').innerText = "✅ Salvo";
+                setTimeout(() => document.getElementById('cloudStatus').innerText = "☁️ Sincronizado", 2000);
+            })
+            .catch(() => {
+                document.getElementById('cloudStatus').innerText = "❌ Erro ao salvar";
+            });
     };
 
-    // --- LOGIN ---
-    function openLogin() { if(isEditing) location.reload(); else document.getElementById("loginOverlay").style.display = "flex"; }
-    function closeLogin() { document.getElementById("loginOverlay").style.display = "none"; }
+    onValue(dbRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.config) {
+            window.config = data.config;
+            window.userPass = data.userPass || "321";
+            document.getElementById('cloudStatus').innerText = "☁️ Sincronizado";
+        } else {
+            window.initData(); 
+            document.getElementById('cloudStatus').innerText = "⚠️ Nuvem Vazia";
+        }
+        window.renderAll();
+    }, (error) => {
+        window.initData();
+        document.getElementById('cloudStatus').innerText = "❌ Erro Permissão";
+    });
+</script>
+
+<script>
+    const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+    window.isEditing = false;
+    window.userPass = "321";
+    let dayClipboard = null;
+    let draggedData = null;
+
+    window.config = {
+        manha: { 
+            aulas: [{l:"1ª",h:"7:10"},{l:"2ª",h:"8:00"},{l:"3ª",h:"8:50"},{l:"4ª",h:"10:00"},{l:"5ª",h:"10:50"}],
+            turmas: ["1ºA","1ºB","1ºC","1ºD","1ºE","2ºA","2ºB","2ºC","3ºA","3ºB","4ºA","4ºB","4ºC","5ºA","5ºB","5ºC"],
+            data: {}, legenda: "⏱️ INTERVALOS MANHÃ: ..."
+        },
+        tarde: {
+            aulas: [{l:"1ª",h:"13:30"},{l:"2ª",h:"14:20"},{l:"3ª",h:"15:10"},{l:"4ª",h:"16:20"},{l:"5ª",h:"17:10"}],
+            turmas: ["1ºE","1ºF","1ºG","2ºD","2ºE","2ºF","2ºG","3ºD","3ºE","3ºF","4ºD","4ºE","4ºF","5ºD","5ºE","5ºF"],
+            data: {}, legenda: "⏱️ INTERVALOS TARDE: ..."
+        }
+    };
+
+    window.activeShift = "manha";
+    window.activeDay = "Segunda";
+    let searchTerm = "";
+
+    window.initData = function() {
+        ["manha", "tarde"].forEach(s => {
+            DIAS.forEach(d => {
+                if(!window.config[s].data[d]) {
+                    window.config[s].data[d] = Array(5).fill().map(() => Array(16).fill().map(() => ({ teacher: "Livre", room: "---" })));
+                }
+            });
+        });
+        window.renderAll();
+    }
+
     function tryLogin() {
-        if(document.getElementById("passInput").value === userPass) {
-            isEditing = true;
+        if(document.getElementById("passInput").value === window.userPass) {
+            window.isEditing = true;
             document.getElementById("lockBtn").classList.add("unlocked");
-            document.getElementById("lockBtn").innerText = "🔓";
-            document.getElementById("editControls").style.display = "flex";
             document.getElementById("footerLegend").contenteditable = "true";
+            document.getElementById("editButtons").style.display = "flex";
             closeLogin();
             renderAll();
         } else { alert("Senha incorreta!"); }
     }
+    function openLogin() { if(window.isEditing) location.reload(); else document.getElementById("loginOverlay").style.display = "flex"; }
+    function closeLogin() { document.getElementById("loginOverlay").style.display = "none"; }
 
-    // --- NUVEM ---
-    async function saveToCloud() {
-        document.getElementById("statusMsg").innerText = "⏳ SALVANDO NA NUVEM...";
-        config[activeShift].legenda = document.getElementById("footerLegend").innerText;
-        try {
-            await fetch(DATABASE_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(config) });
-            setTimeout(() => { document.getElementById("statusMsg").innerText = "✅ SALVO COM SUCESSO!"; }, 1500);
-        } catch (e) { document.getElementById("statusMsg").innerText = "❌ ERRO AO SALVAR!"; }
-    }
-
-    async function loadFromCloud() {
-        try {
-            const resp = await fetch(DATABASE_URL);
-            const saved = await resp.json();
-            if(saved && saved.manha) { config = saved; document.getElementById("statusMsg").innerText = "✅ DADOS SINCRONIZADOS"; }
-            else { initEmptyData(); }
-            renderAll();
-        } catch (e) { document.getElementById("statusMsg").innerText = "⚠️ MODO OFFLINE"; initEmptyData(); renderAll(); }
-    }
-
-    function initEmptyData() {
-        ["manha", "tarde"].forEach(s => {
-            DIAS.forEach(d => {
-                if(!config[s].data[d]) config[s].data[d] = Array(5).fill().map(() => Array(16).fill().map(() => ({ teacher: "Livre", room: "---" })));
-            });
-        });
-    }
-
-    // --- RENDER ---
-    function renderAll() {
-        document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => `<div class="tab ${activeShift===s?'active':''}" onclick="activeShift='${s}';renderAll()">${s.toUpperCase()}</div>`).join("");
-        document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${activeDay===d?'active':''}" onclick="activeDay='${d}';renderAll()">${d}</div>`).join("");
-        
-        const shift = config[activeShift];
-        const gridData = shift.data[activeDay];
+    function createGridHTML(dia, shiftKey) {
+        const shift = window.config[shiftKey];
+        const gridData = shift.data[dia];
         let html = `<div class="schedule-grid"><div class="grid-header">Horas</div>`;
         shift.turmas.forEach(t => html += `<div class="grid-header">${t}</div>`);
 
         shift.aulas.forEach((aula, aIdx) => {
-            html += `<div class="time-slot">${aula.l}<br>${aula.h}</div>`;
+            html += `<div class="time-slot">${aula.l}\n${aula.h}</div>`;
             shift.turmas.forEach((turma, tIdx) => {
                 const cell = gridData[aIdx][tIdx];
                 const prof = cell.teacher.toUpperCase();
                 let classes = "schedule-cell";
+                if (prof.includes("HI")) classes += " cell-hi";
+                if (prof.includes("HL")) classes += " cell-hl";
+                if (searchTerm && prof !== "LIVRE" && prof.includes(searchTerm.toUpperCase())) classes += " cell-highlight";
                 
-                if(prof.includes("HI")) classes += " cell-hi";
-                if(prof.includes("HL")) classes += " cell-hl";
-                if(searchTerm && prof.includes(searchTerm.toUpperCase()) && prof !== "LIVRE") classes += " cell-highlight";
-                
-                html += `<div class="${classes}" onclick="editCell(${aIdx}, ${tIdx})">
+                html += `<div class="${classes}" draggable="${window.isEditing}" ondragstart="handleDragStart(event, ${aIdx}, ${tIdx})" ondragover="event.preventDefault()" ondrop="handleDrop(event, ${aIdx}, ${tIdx})" onclick="editCell(${aIdx}, ${tIdx})">
                             <strong>${cell.teacher}</strong><br><small>S: ${cell.room}</small>
                          </div>`;
             });
         });
-        document.getElementById("scheduleGrid").innerHTML = html + "</div>";
-        document.getElementById("footerLegend").innerText = shift.legenda;
+        return html + `</div>`;
     }
 
     function editCell(aIdx, tIdx) {
-        if(!isEditing) return;
-        const data = config[activeShift].data[activeDay][aIdx][tIdx];
+        if(!window.isEditing) return;
+        const data = window.config[window.activeShift].data[window.activeDay][aIdx][tIdx];
         const n = prompt("Professor:", data.teacher);
         if (n !== null) {
-            config[activeShift].data[activeDay][aIdx][tIdx] = { teacher: n || "Livre", room: prompt("Sala:", data.room) || "---" };
+            const r = prompt("Sala:", data.room);
+            window.config[window.activeShift].data[window.activeDay][aIdx][tIdx] = { teacher: n || "Livre", room: r || "---" };
+            window.saveAuto(); // SALVA AUTOMATICAMENTE
             renderAll();
         }
     }
 
-    // --- FILTRO E AUXILIARES ---
-    document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; renderAll(); };
-    function copyFullDay() { dayClipboard = JSON.parse(JSON.stringify(config[activeShift].data[activeDay])); alert("Dia copiado!"); }
-    function pasteFullDay() { if(dayClipboard) { config[activeShift].data[activeDay] = JSON.parse(JSON.stringify(dayClipboard)); renderAll(); } }
+    function handleDragStart(e, aIdx, tIdx) {
+        if(!window.isEditing) return;
+        draggedData = { aIdx, tIdx, content: {...window.config[window.activeShift].data[window.activeDay][aIdx][tIdx]} };
+    }
+    function handleDrop(e, aIdx, tIdx) {
+        e.preventDefault();
+        if(!window.isEditing || !draggedData) return;
+        if (!e.ctrlKey) window.config[window.activeShift].data[window.activeDay][draggedData.aIdx][draggedData.tIdx] = { teacher: "Livre", room: "---" };
+        window.config[window.activeShift].data[window.activeDay][aIdx][tIdx] = draggedData.content;
+        draggedData = null;
+        window.saveAuto(); // SALVA AUTOMATICAMENTE
+        renderAll();
+    }
 
-    loadFromCloud();
+    function copyFullDay() { dayClipboard = JSON.parse(JSON.stringify(window.config[window.activeShift].data[window.activeDay])); alert("Copiado!"); }
+    function pasteFullDay() {
+        if(!dayClipboard) return;
+        window.config[window.activeShift].data[window.activeDay] = JSON.parse(JSON.stringify(dayClipboard));
+        window.saveAuto(); // SALVA AUTOMATICAMENTE
+        renderAll();
+    }
+
+    window.renderAll = function() {
+        document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => `<div class="tab ${window.activeShift===s?'active':''}" onclick="window.activeShift='${s}';renderAll()">${s.toUpperCase()}</div>`).join("");
+        document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${window.activeDay===d?'active':''}" onclick="window.activeDay='${d}';renderAll()">${d}</div>`).join("");
+        document.getElementById("scheduleGrid").innerHTML = createGridHTML(window.activeDay, window.activeShift);
+        document.getElementById("footerLegend").innerText = window.config[window.activeShift].legenda;
+
+        let printHTML = `<h2 style="text-align:center;">EMEF QUINTINO BOCAIUVA - ${window.activeShift.toUpperCase()}</h2>`;
+        DIAS.forEach(d => { printHTML += `<div class="print-day-title">${d}</div>` + createGridHTML(d, window.activeShift); });
+        document.getElementById("printArea").innerHTML = printHTML;
+    }
+
+    document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; renderAll(); };
 </script>
 </body>
 </html>
