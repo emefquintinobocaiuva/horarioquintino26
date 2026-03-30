@@ -23,6 +23,15 @@
         .login-box input, .login-box select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; }
         .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr)); border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 20px; background: white; }
         .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; min-height: 45px; display: flex; align-items: center; justify-content: center; }
+        
+        /* Estilo para quando estiver logado */
+        .edit-mode .grid-header:not(:first-child), 
+        .edit-mode .time-slot { 
+            background: #fff7ed !important; 
+            cursor: pointer !important; 
+            border: 1px dashed #f59e0b !important;
+        }
+
         .schedule-cell { border: 0.5px solid #e2e8f0; padding: 4px; min-height: 70px; cursor: grab; position: relative; text-align: center; }
         .cell-hi { background-color: #ffcfcf !important; border: 1.5px solid #ef4444 !important; }
         .cell-hl { background-color: #d1fae5 !important; border: 1.5px solid #10b981 !important; }
@@ -33,17 +42,9 @@
         .footer-area { margin-top: 20px; padding: 20px; border-radius: 12px; background: #fffbeb; border: 2px dashed #f59e0b; }
         .editable-legend { font-size: 1rem; min-height: 40px; outline: none; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #fde68a; margin-bottom: 10px; padding: 5px; }
         .status-indicator { font-size: 0.8rem; font-weight: bold; margin-left: 10px; color: #64748b; }
-        @media print {
-            @page { size: A4 landscape; margin: 5mm; }
-            .toolbar, .tabs-row, .header-institucional, .status-indicator { display: none !important; }
-            .main-container { box-shadow: none; border: none; padding: 0; }
-            #scheduleGrid { display: none !important; }
-            #printArea { display: block !important; }
-            .print-day-title { background: #1e3a5f; color: white; padding: 5px 15px; margin-top: 20px; border-radius: 5px; text-transform: uppercase; }
-        }
     </style>
 </head>
-<body>
+<body id="mainBody">
 
 <div id="loginOverlay">
     <div class="login-box">
@@ -70,13 +71,11 @@
             <button id="lockBtn" class="btn btn-lock" onclick="openLogin()">🔒</button>
             <span id="cloudStatus" class="status-indicator">⏳ Conectando...</span>
         </div>
-        
         <div id="editButtons" style="display:none; gap:8px;">
             <button class="btn btn-navy" onclick="copyFullDay()">📋 Copiar Dia</button>
             <button class="btn btn-navy" onclick="pasteFullDay()">📥 Colar Dia</button>
         </div>
-
-        <button class="btn btn-red" onclick="window.print()">🖨️ PDF (5 Dias)</button>
+        <button class="btn btn-red" onclick="window.print()">🖨️ PDF</button>
     </div>
     
     <div class="tabs-row" id="shiftTabs"></div>
@@ -86,7 +85,7 @@
     <div id="printArea" style="display:none;"></div>
 
     <div class="footer-area">
-        <div class="editable-legend" id="footerLegend" contenteditable="false" onblur="saveAuto()">
+        <div class="editable-legend" id="footerLegend" contenteditable="false" oninput="window.saveAuto()" onblur="window.saveAuto()">
             ⏱️ INTERVALOS...
         </div>
     </div>
@@ -111,22 +110,16 @@
     const db = getDatabase(app);
     const dbRef = ref(db, 'horarios_quintino');
 
-    // FUNÇÃO DE AUTO-SALVAMENTO (Acionada em qualquer mudança)
     window.saveAuto = function() {
-        if(!window.isEditing) return; // Só salva se estiver logado
-        
+        if(!window.isEditing) return;
         document.getElementById('cloudStatus').innerText = "🔄 Salvando...";
-        
         window.config[window.activeShift].legenda = document.getElementById("footerLegend").innerText;
-        
         set(dbRef, {config: window.config, userPass: window.userPass})
             .then(() => {
                 document.getElementById('cloudStatus').innerText = "✅ Salvo";
                 setTimeout(() => document.getElementById('cloudStatus').innerText = "☁️ Sincronizado", 2000);
             })
-            .catch(() => {
-                document.getElementById('cloudStatus').innerText = "❌ Erro ao salvar";
-            });
+            .catch(() => { document.getElementById('cloudStatus').innerText = "❌ Erro"; });
     };
 
     onValue(dbRef, (snapshot) => {
@@ -137,12 +130,8 @@
             document.getElementById('cloudStatus').innerText = "☁️ Sincronizado";
         } else {
             window.initData(); 
-            document.getElementById('cloudStatus').innerText = "⚠️ Nuvem Vazia";
         }
         window.renderAll();
-    }, (error) => {
-        window.initData();
-        document.getElementById('cloudStatus').innerText = "❌ Erro Permissão";
     });
 </script>
 
@@ -150,8 +139,11 @@
     const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
     window.isEditing = false;
     window.userPass = "321";
+    window.activeShift = "manha";
+    window.activeDay = "Segunda";
     let dayClipboard = null;
     let draggedData = null;
+    let searchTerm = "";
 
     window.config = {
         manha: { 
@@ -166,10 +158,6 @@
         }
     };
 
-    window.activeShift = "manha";
-    window.activeDay = "Segunda";
-    let searchTerm = "";
-
     window.initData = function() {
         ["manha", "tarde"].forEach(s => {
             DIAS.forEach(d => {
@@ -181,27 +169,55 @@
         window.renderAll();
     }
 
-    function tryLogin() {
+    window.tryLogin = function() {
         if(document.getElementById("passInput").value === window.userPass) {
             window.isEditing = true;
+            document.getElementById("mainBody").classList.add("edit-mode");
             document.getElementById("lockBtn").classList.add("unlocked");
             document.getElementById("footerLegend").contenteditable = "true";
             document.getElementById("editButtons").style.display = "flex";
-            closeLogin();
-            renderAll();
+            document.getElementById("loginOverlay").style.display = "none";
+            window.renderAll();
         } else { alert("Senha incorreta!"); }
     }
-    function openLogin() { if(window.isEditing) location.reload(); else document.getElementById("loginOverlay").style.display = "flex"; }
-    function closeLogin() { document.getElementById("loginOverlay").style.display = "none"; }
+    
+    window.openLogin = function() { if(window.isEditing) location.reload(); else document.getElementById("loginOverlay").style.display = "flex"; }
+    window.closeLogin = function() { document.getElementById("loginOverlay").style.display = "none"; }
+
+    window.editTurma = function(idx) {
+        if(!window.isEditing) return;
+        const atual = window.config[window.activeShift].turmas[idx];
+        const novo = prompt("Renomear Turma:", atual);
+        if(novo && novo !== atual) {
+            window.config[window.activeShift].turmas[idx] = novo;
+            window.saveAuto();
+            window.renderAll();
+        }
+    }
+
+    window.editHora = function(idx) {
+        if(!window.isEditing) return;
+        const aula = window.config[window.activeShift].aulas[idx];
+        const novaL = prompt("Rótulo da Aula (ex: 1ª):", aula.l);
+        const novaH = prompt("Horário da Aula (ex: 07:10):", aula.h);
+        if(novaL || novaH) {
+            window.config[window.activeShift].aulas[idx] = {l: novaL || aula.l, h: novaH || aula.h};
+            window.saveAuto();
+            window.renderAll();
+        }
+    }
 
     function createGridHTML(dia, shiftKey) {
         const shift = window.config[shiftKey];
         const gridData = shift.data[dia];
         let html = `<div class="schedule-grid"><div class="grid-header">Horas</div>`;
-        shift.turmas.forEach(t => html += `<div class="grid-header">${t}</div>`);
+        
+        shift.turmas.forEach((t, i) => {
+            html += `<div class="grid-header" onclick="window.editTurma(${i})">${t}</div>`;
+        });
 
         shift.aulas.forEach((aula, aIdx) => {
-            html += `<div class="time-slot">${aula.l}\n${aula.h}</div>`;
+            html += `<div class="time-slot" onclick="window.editHora(${aIdx})">${aula.l}<br>${aula.h}</div>`;
             shift.turmas.forEach((turma, tIdx) => {
                 const cell = gridData[aIdx][tIdx];
                 const prof = cell.teacher.toUpperCase();
@@ -218,15 +234,15 @@
         return html + `</div>`;
     }
 
-    function editCell(aIdx, tIdx) {
+    window.editCell = function(aIdx, tIdx) {
         if(!window.isEditing) return;
         const data = window.config[window.activeShift].data[window.activeDay][aIdx][tIdx];
         const n = prompt("Professor:", data.teacher);
         if (n !== null) {
             const r = prompt("Sala:", data.room);
             window.config[window.activeShift].data[window.activeDay][aIdx][tIdx] = { teacher: n || "Livre", room: r || "---" };
-            window.saveAuto(); // SALVA AUTOMATICAMENTE
-            renderAll();
+            window.saveAuto();
+            window.renderAll();
         }
     }
 
@@ -240,30 +256,26 @@
         if (!e.ctrlKey) window.config[window.activeShift].data[window.activeDay][draggedData.aIdx][draggedData.tIdx] = { teacher: "Livre", room: "---" };
         window.config[window.activeShift].data[window.activeDay][aIdx][tIdx] = draggedData.content;
         draggedData = null;
-        window.saveAuto(); // SALVA AUTOMATICAMENTE
-        renderAll();
+        window.saveAuto();
+        window.renderAll();
     }
 
-    function copyFullDay() { dayClipboard = JSON.parse(JSON.stringify(window.config[window.activeShift].data[window.activeDay])); alert("Copiado!"); }
-    function pasteFullDay() {
+    window.copyFullDay = function() { dayClipboard = JSON.parse(JSON.stringify(window.config[window.activeShift].data[window.activeDay])); alert("Copiado!"); }
+    window.pasteFullDay = function() {
         if(!dayClipboard) return;
         window.config[window.activeShift].data[window.activeDay] = JSON.parse(JSON.stringify(dayClipboard));
-        window.saveAuto(); // SALVA AUTOMATICAMENTE
-        renderAll();
+        window.saveAuto();
+        window.renderAll();
     }
 
     window.renderAll = function() {
-        document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => `<div class="tab ${window.activeShift===s?'active':''}" onclick="window.activeShift='${s}';renderAll()">${s.toUpperCase()}</div>`).join("");
-        document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${window.activeDay===d?'active':''}" onclick="window.activeDay='${d}';renderAll()">${d}</div>`).join("");
+        document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => `<div class="tab ${window.activeShift===s?'active':''}" onclick="window.activeShift='${s}';window.renderAll()">${s.toUpperCase()}</div>`).join("");
+        document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${window.activeDay===d?'active':''}" onclick="window.activeDay='${d}';window.renderAll()">${d}</div>`).join("");
         document.getElementById("scheduleGrid").innerHTML = createGridHTML(window.activeDay, window.activeShift);
         document.getElementById("footerLegend").innerText = window.config[window.activeShift].legenda;
-
-        let printHTML = `<h2 style="text-align:center;">EMEF QUINTINO BOCAIUVA - ${window.activeShift.toUpperCase()}</h2>`;
-        DIAS.forEach(d => { printHTML += `<div class="print-day-title">${d}</div>` + createGridHTML(d, window.activeShift); });
-        document.getElementById("printArea").innerHTML = printHTML;
     }
 
-    document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; renderAll(); };
+    document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; window.renderAll(); };
 </script>
 </body>
 </html>
