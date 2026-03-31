@@ -8,16 +8,14 @@
         * { box-sizing: border-box; }
         body { background: #eef2f8; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
         
-        /* Ajuste de Header para Mobile */
         .header-institucional { width: 100%; max-width: 1400px; margin: 0 auto 15px; display: flex; justify-content: center; background: white; padding: 10px; border-radius: 15px; }
         .header-institucional img { width: 100%; max-width: 1200px; height: auto; }
         
         .main-container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
         
-        /* Toolbar Responsiva */
         .toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
         .search-container { flex-grow: 1; display: flex; gap: 10px; align-items: center; min-width: 250px; }
-        .search-input { flex-grow: 1; padding: 12px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; font-size: 16px; } /* 16px evita zoom no iOS */
+        .search-input { flex-grow: 1; padding: 12px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; font-size: 16px; }
 
         .btn { border: none; padding: 10px 20px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; min-height: 44px; }
         .btn-navy { background: #1e3a5f; }
@@ -25,25 +23,24 @@
         .btn-lock { background: #64748b; font-size: 1.1rem; padding: 8px 15px; }
         .btn-lock.unlocked { background: #f59e0b; }
 
-        /* ALTERAÇÃO 2: Login Adaptável (Para de flutuar no celular) */
         #loginOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .login-box { background: white; padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; }
         .login-box input, .login-box select { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
 
-        /* ALTERAÇÃO 3: Container de Scroll para a Tabela */
         .grid-wrapper { width: 100%; overflow-x: auto; border-radius: 10px; border: 1px solid #cbd5e1; }
         .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(100px, 1fr)); font-size: 0.75rem; background: white; min-width: 1200px; }
         
         .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 8px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; min-height: 50px; display: flex; align-items: center; justify-content: center; }
-        .schedule-cell { border-bottom: 0.5px solid #e2e8f0; border-right: 0.5px solid #e2e8f0; padding: 8px 4px; min-height: 80px; position: relative; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+        .schedule-cell { border-bottom: 0.5px solid #e2e8f0; border-right: 0.5px solid #e2e8f0; padding: 8px 4px; min-height: 80px; position: relative; text-align: center; display: flex; flex-direction: column; justify-content: center; background-color: white; }
         
         .edit-mode .grid-header:not(:first-child), .edit-mode .time-slot { background: #fff7ed !important; cursor: pointer !important; border: 1px dashed #f59e0b !important; }
         
+        /* CORES DE IDENTIFICAÇÃO */
+        .cell-quebrada { background-color: #fef9c3 !important; border: 1px solid #facc15 !important; } /* Amarelo para '*' */
         .cell-hi { background-color: #ffcfcf !important; border: 1.5px solid #ef4444 !important; }
         .cell-hl { background-color: #d1fae5 !important; border: 1.5px solid #10b981 !important; }
         .cell-highlight { background-color: #bae6fd !important; transform: scale(1.01); z-index: 5; }
 
-        /* Tabs Responsivas */
         .tabs-row { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
         .tab { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 600; white-space: nowrap; }
         .tab.active { background: #1e3a5f; color: white; }
@@ -52,9 +49,8 @@
         .editable-legend { font-size: 1rem; min-height: 40px; outline: none; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #fde68a; margin-bottom: 10px; padding: 5px; }
         .status-indicator { font-size: 0.8rem; font-weight: bold; margin-left: 10px; color: #64748b; }
 
-        /* Estilo para Celular (Media Queries) */
         @media (max-width: 768px) {
-            #loginOverlay { align-items: flex-start; padding-top: 10%; } /* Sobe a caixa de login para o teclado não cobrir */
+            #loginOverlay { align-items: flex-start; padding-top: 10%; }
             .main-container { padding: 10px; border-radius: 10px; }
             .schedule-grid { font-size: 0.7rem; }
             .btn { padding: 10px 15px; font-size: 0.9rem; }
@@ -137,7 +133,6 @@
     window.saveAuto = function() {
         if(!window.isEditing) return;
         document.getElementById('cloudStatus').innerText = "🔄 Salvando...";
-        
         if(!window.config[window.activeShift].legendasPorDia) window.config[window.activeShift].legendasPorDia = {};
         window.config[window.activeShift].legendasPorDia[window.activeDay] = document.getElementById("footerLegend").innerText;
         
@@ -240,13 +235,26 @@
             html += `<div class="time-slot" onclick="window.editHora(${aIdx})">${aula.l}<br>${aula.h}</div>`;
             shift.turmas.forEach((turma, tIdx) => {
                 const cell = gridData[aIdx][tIdx];
-                const prof = cell.teacher.toUpperCase();
+                const profOriginal = cell.teacher || "Livre";
+                const profUpper = profOriginal.toUpperCase();
                 let classes = "schedule-cell";
-                if (prof.includes("HI")) classes += " cell-hi";
-                if (prof.includes("HL")) classes += " cell-hl";
-                if (searchTerm && prof !== "LIVRE" && prof.includes(searchTerm.toUpperCase())) classes += " cell-highlight";
+                
+                // Lógica de cores baseada no asterisco e siglas
+                if (profOriginal.includes('*')) {
+                    classes += " cell-quebrada";
+                }
+                if (profUpper.includes("HI")) {
+                    classes += " cell-hi";
+                } else if (profUpper.includes("HL")) {
+                    classes += " cell-hl";
+                }
+                
+                if (searchTerm && profUpper !== "LIVRE" && profUpper.includes(searchTerm.toUpperCase())) {
+                    classes += " cell-highlight";
+                }
+
                 html += `<div class="${classes}" draggable="${window.isEditing}" ondragstart="handleDragStart(event, ${aIdx}, ${tIdx})" ondragover="event.preventDefault()" ondrop="handleDrop(event, ${aIdx}, ${tIdx})" onclick="window.editCell(${aIdx}, ${tIdx})">
-                            <strong>${cell.teacher}</strong><br><small>S: ${cell.room}</small>
+                            <strong>${profOriginal}</strong><br><small>S: ${cell.room}</small>
                          </div>`;
             });
         });
