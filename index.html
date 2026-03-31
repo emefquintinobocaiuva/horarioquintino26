@@ -7,33 +7,64 @@
     <style>
         * { box-sizing: border-box; }
         body { background: #eef2f8; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
+        
+        /* Ajuste de Header para Mobile */
         .header-institucional { width: 100%; max-width: 1400px; margin: 0 auto 15px; display: flex; justify-content: center; background: white; padding: 10px; border-radius: 15px; }
         .header-institucional img { width: 100%; max-width: 1200px; height: auto; }
+        
         .main-container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        
+        /* Toolbar Responsiva */
         .toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
-        .search-container { flex-grow: 1; display: flex; gap: 10px; align-items: center; }
-        .search-input { flex-grow: 1; padding: 10px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; }
-        .btn { border: none; padding: 10px 20px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .search-container { flex-grow: 1; display: flex; gap: 10px; align-items: center; min-width: 250px; }
+        .search-input { flex-grow: 1; padding: 12px 20px; border-radius: 40px; border: 2px solid #cbd5e1; outline: none; font-size: 16px; } /* 16px evita zoom no iOS */
+
+        .btn { border: none; padding: 10px 20px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; min-height: 44px; }
         .btn-navy { background: #1e3a5f; }
         .btn-red { background: #ef4444; }
         .btn-lock { background: #64748b; font-size: 1.1rem; padding: 8px 15px; }
         .btn-lock.unlocked { background: #f59e0b; }
-        #loginOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
-        .login-box { background: white; padding: 30px; border-radius: 20px; width: 350px; text-align: center; }
-        .login-box input, .login-box select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; }
-        .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(65px, 1fr)); border: 1px solid #cbd5e1; font-size: 0.65rem; margin-bottom: 20px; background: white; }
-        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 6px 2px; border: 0.5px solid #cbd5e1; min-height: 45px; display: flex; align-items: center; justify-content: center; }
+
+        /* ALTERAÇÃO 2: Login Adaptável (Para de flutuar no celular) */
+        #loginOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+        .login-box { background: white; padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; }
+        .login-box input, .login-box select { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+
+        /* ALTERAÇÃO 3: Container de Scroll para a Tabela */
+        .grid-wrapper { width: 100%; overflow-x: auto; border-radius: 10px; border: 1px solid #cbd5e1; }
+        .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(100px, 1fr)); font-size: 0.75rem; background: white; min-width: 1200px; }
+        
+        .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 8px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+        .schedule-cell { border-bottom: 0.5px solid #e2e8f0; border-right: 0.5px solid #e2e8f0; padding: 8px 4px; min-height: 80px; position: relative; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+        
         .edit-mode .grid-header:not(:first-child), .edit-mode .time-slot { background: #fff7ed !important; cursor: pointer !important; border: 1px dashed #f59e0b !important; }
-        .schedule-cell { border: 0.5px solid #e2e8f0; padding: 4px; min-height: 70px; cursor: grab; position: relative; text-align: center; }
+        
         .cell-hi { background-color: #ffcfcf !important; border: 1.5px solid #ef4444 !important; }
         .cell-hl { background-color: #d1fae5 !important; border: 1.5px solid #10b981 !important; }
-        .cell-highlight { background-color: #bae6fd !important; transform: scale(1.02); z-index: 5; }
-        .tabs-row { display: flex; gap: 8px; margin-bottom: 15px; }
-        .tab { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 600; }
+        .cell-highlight { background-color: #bae6fd !important; transform: scale(1.01); z-index: 5; }
+
+        /* Tabs Responsivas */
+        .tabs-row { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+        .tab { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 600; white-space: nowrap; }
         .tab.active { background: #1e3a5f; color: white; }
+
         .footer-area { margin-top: 20px; padding: 20px; border-radius: 12px; background: #fffbeb; border: 2px dashed #f59e0b; }
         .editable-legend { font-size: 1rem; min-height: 40px; outline: none; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #fde68a; margin-bottom: 10px; padding: 5px; }
         .status-indicator { font-size: 0.8rem; font-weight: bold; margin-left: 10px; color: #64748b; }
+
+        /* Estilo para Celular (Media Queries) */
+        @media (max-width: 768px) {
+            #loginOverlay { align-items: flex-start; padding-top: 10%; } /* Sobe a caixa de login para o teclado não cobrir */
+            .main-container { padding: 10px; border-radius: 10px; }
+            .schedule-grid { font-size: 0.7rem; }
+            .btn { padding: 10px 15px; font-size: 0.9rem; }
+        }
+
+        @media print {
+            .toolbar, .tabs-row, .btn-lock, #loginOverlay { display: none !important; }
+            .grid-wrapper { overflow: visible !important; }
+            .schedule-grid { min-width: 100% !important; grid-template-columns: 80px repeat(16, 1fr) !important; }
+        }
     </style>
 </head>
 <body id="mainBody">
@@ -46,9 +77,9 @@
             <option value="VIC">VIC: Veronica</option>
             <option value="CRD">CRD: Larissa</option>
         </select>
-        <input type="password" id="passInput" placeholder="Senha">
+        <input type="password" id="passInput" placeholder="Senha" inputmode="numeric">
         <button class="btn btn-navy" style="width:100%" onclick="window.tryLogin()">Entrar</button>
-        <button class="btn" style="background:none; color:gray" onclick="window.closeLogin()">Cancelar</button>
+        <button class="btn" style="background:none; color:gray; width:100%; margin-top:10px;" onclick="window.closeLogin()">Cancelar</button>
     </div>
 </div>
 
@@ -61,19 +92,21 @@
         <div class="search-container">
             <input type="text" id="teacherSearch" class="search-input" placeholder="🔍 Buscar professor...">
             <button id="lockBtn" class="btn btn-lock" onclick="window.openLogin()">🔒</button>
-            <span id="cloudStatus" class="status-indicator">⏳ Conectando...</span>
         </div>
         <div id="editButtons" style="display:none; gap:8px;">
-            <button class="btn btn-navy" onclick="window.copyFullDay()">📋 Copiar Dia</button>
-            <button class="btn btn-navy" onclick="window.pasteFullDay()">📥 Colar Dia</button>
+            <button class="btn btn-navy" onclick="window.copyFullDay()">📋 Copiar</button>
+            <button class="btn btn-navy" onclick="window.pasteFullDay()">📥 Colar</button>
         </div>
         <button class="btn btn-red" onclick="window.print()">🖨️ PDF</button>
+        <span id="cloudStatus" class="status-indicator">⏳...</span>
     </div>
     
     <div class="tabs-row" id="shiftTabs"></div>
     <div class="tabs-row" id="dayTabs"></div>
     
-    <div id="scheduleGrid"></div>
+    <div class="grid-wrapper">
+        <div id="scheduleGrid"></div>
+    </div>
 
     <div class="footer-area">
         <div class="editable-legend" id="footerLegend" contenteditable="false" onblur="window.saveAuto()">
@@ -105,7 +138,6 @@
         if(!window.isEditing) return;
         document.getElementById('cloudStatus').innerText = "🔄 Salvando...";
         
-        // SALVA A LEGENDA DENTRO DO DIA ESPECÍFICO DO TURNO
         if(!window.config[window.activeShift].legendasPorDia) window.config[window.activeShift].legendasPorDia = {};
         window.config[window.activeShift].legendasPorDia[window.activeDay] = document.getElementById("footerLegend").innerText;
         
@@ -171,6 +203,7 @@
             window.isEditing = true;
             document.getElementById("mainBody").classList.add("edit-mode");
             document.getElementById("lockBtn").classList.add("unlocked");
+            document.getElementById("lockBtn").innerText = "🔓";
             document.getElementById("footerLegend").contentEditable = "true";
             document.getElementById("editButtons").style.display = "flex";
             document.getElementById("loginOverlay").style.display = "none";
@@ -248,7 +281,7 @@
             data: JSON.parse(JSON.stringify(window.config[window.activeShift].data[window.activeDay])),
             legenda: window.config[window.activeShift].legendasPorDia[window.activeDay]
         };
-        alert("Dia completo copiado (grade + rodapé)!"); 
+        alert("Dia completo copiado!"); 
     }
     window.pasteFullDay = function() {
         if(!dayClipboard) return;
@@ -262,7 +295,6 @@
         document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${window.activeDay===d?'active':''}" onclick="window.activeDay='${d}';window.renderAll()">${d}</div>`).join("");
         document.getElementById("scheduleGrid").innerHTML = createGridHTML(window.activeDay, window.activeShift);
         
-        // CARREGA A LEGENDA ESPECÍFICA DO DIA E TURNO ATUAL
         const legendas = window.config[window.activeShift].legendasPorDia || {};
         document.getElementById("footerLegend").innerText = legendas[window.activeDay] || `⏱️ INTERVALOS...`;
     }
