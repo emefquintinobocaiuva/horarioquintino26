@@ -31,12 +31,11 @@
         .schedule-grid { display: grid; grid-template-columns: 100px repeat(16, minmax(100px, 1fr)); font-size: 0.75rem; background: white; min-width: 1200px; }
         
         .grid-header, .time-slot { background: #f8fafc; font-weight: bold; text-align: center; padding: 8px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; min-height: 50px; display: flex; align-items: center; justify-content: center; }
-        .schedule-cell { border-bottom: 0.5px solid #e2e8f0; border-right: 0.5px solid #e2e8f0; padding: 8px 4px; min-height: 80px; position: relative; text-align: center; display: flex; flex-direction: column; justify-content: center; background-color: white; }
+        .schedule-cell { border-bottom: 0.5px solid #e2e8f0; border-right: 0.5px solid #e2e8f0; padding: 8px 4px; min-height: 80px; position: relative; text-align: center; display: flex; flex-direction: column; justify-content: center; background-color: white; user-select: none; -webkit-user-select: none; }
         
         .edit-mode .grid-header:not(:first-child), .edit-mode .time-slot { background: #fff7ed !important; cursor: pointer !important; border: 1px dashed #f59e0b !important; }
         
-        /* CORES DE IDENTIFICAÇÃO */
-        .cell-quebrada { background-color: #fef9c3 !important; border: 1px solid #facc15 !important; } /* Amarelo para '*' */
+        .cell-quebrada { background-color: #fef9c3 !important; border: 1px solid #facc15 !important; }
         .cell-hi { background-color: #ffcfcf !important; border: 1.5px solid #ef4444 !important; }
         .cell-hl { background-color: #d1fae5 !important; border: 1.5px solid #10b981 !important; }
         .cell-highlight { background-color: #bae6fd !important; transform: scale(1.01); z-index: 5; }
@@ -54,12 +53,6 @@
             .main-container { padding: 10px; border-radius: 10px; }
             .schedule-grid { font-size: 0.7rem; }
             .btn { padding: 10px 15px; font-size: 0.9rem; }
-        }
-
-        @media print {
-            .toolbar, .tabs-row, .btn-lock, #loginOverlay { display: none !important; }
-            .grid-wrapper { overflow: visible !important; }
-            .schedule-grid { min-width: 100% !important; grid-template-columns: 80px repeat(16, 1fr) !important; }
         }
     </style>
 </head>
@@ -167,6 +160,12 @@
     let draggedData = null;
     let searchTerm = "";
 
+    // Variaveis para cópia por toque
+    let copiando = false;
+    let valorCopiado = null;
+    let timeoutPress = null;
+    const tempoSegurar = 400;
+
     window.config = {
         manha: { 
             aulas: [{l:"1ª",h:"7:10"},{l:"2ª",h:"8:00"},{l:"3ª",h:"8:50"},{l:"4ª",h:"10:00"},{l:"5ª",h:"10:50"}],
@@ -239,21 +238,17 @@
                 const profUpper = profOriginal.toUpperCase();
                 let classes = "schedule-cell";
                 
-                // Lógica de cores baseada no asterisco e siglas
-                if (profOriginal.includes('*')) {
-                    classes += " cell-quebrada";
-                }
-                if (profUpper.includes("HI")) {
-                    classes += " cell-hi";
-                } else if (profUpper.includes("HL")) {
-                    classes += " cell-hl";
-                }
-                
-                if (searchTerm && profUpper !== "LIVRE" && profUpper.includes(searchTerm.toUpperCase())) {
-                    classes += " cell-highlight";
-                }
+                if (profOriginal.includes('*')) classes += " cell-quebrada";
+                if (profUpper.includes("HI")) classes += " cell-hi";
+                else if (profUpper.includes("HL")) classes += " cell-hl";
+                if (searchTerm && profUpper !== "LIVRE" && profUpper.includes(searchTerm.toUpperCase())) classes += " cell-highlight";
 
-                html += `<div class="${classes}" draggable="${window.isEditing}" ondragstart="handleDragStart(event, ${aIdx}, ${tIdx})" ondragover="event.preventDefault()" ondrop="handleDrop(event, ${aIdx}, ${tIdx})" onclick="window.editCell(${aIdx}, ${tIdx})">
+                html += `<div class="${classes}" 
+                              draggable="${window.isEditing}" 
+                              ondragstart="handleDragStart(event, ${aIdx}, ${tIdx})" 
+                              ondragover="event.preventDefault()" 
+                              ondrop="handleDrop(event, ${aIdx}, ${tIdx})" 
+                              onclick="window.editCell(${aIdx}, ${tIdx})">
                             <strong>${profOriginal}</strong><br><small>S: ${cell.room}</small>
                          </div>`;
             });
@@ -262,7 +257,7 @@
     }
 
     window.editCell = function(aIdx, tIdx) {
-        if(!window.isEditing) return;
+        if(!window.isEditing || copiando) return;
         const data = window.config[window.activeShift].data[window.activeDay][aIdx][tIdx];
         const n = prompt("Professor:", data.teacher);
         if (n !== null) {
@@ -272,6 +267,7 @@
         }
     }
 
+    // Drag and Drop Desktop
     function handleDragStart(e, aIdx, tIdx) {
         if(!window.isEditing) return;
         draggedData = { aIdx, tIdx, content: {...window.config[window.activeShift].data[window.activeDay][aIdx][tIdx]} };
@@ -298,6 +294,60 @@
         window.saveAuto(); window.renderAll();
     }
 
+    // ================== COPIAR ARRASTANDO (MOBILE) ==================
+    function ativarCopiaPorArraste() {
+        const cells = document.querySelectorAll(".schedule-cell");
+        const totalTurmas = window.config[window.activeShift].turmas.length;
+
+        cells.forEach(cell => {
+            cell.oncontextmenu = (e) => { if(window.isEditing) e.preventDefault(); };
+
+            cell.addEventListener("touchstart", function(e) {
+                if (!window.isEditing) return;
+                timeoutPress = setTimeout(() => {
+                    copiando = true;
+                    const allCells = [...document.querySelectorAll(".schedule-cell")];
+                    const index = allCells.indexOf(this);
+                    const aula = Math.floor(index / totalTurmas);
+                    const turma = index % totalTurmas;
+
+                    valorCopiado = JSON.parse(JSON.stringify(window.config[window.activeShift].data[window.activeDay][aula][turma]));
+                    this.style.background = "#ffeaa7";
+                    if(navigator.vibrate) navigator.vibrate(40);
+                }, tempoSegurar);
+            }, { passive: true });
+
+            cell.addEventListener("touchmove", function(e) {
+                if (!copiando) { clearTimeout(timeoutPress); return; }
+                e.preventDefault(); 
+                let touch = e.touches[0];
+                let el = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                if (el && el.classList.contains("schedule-cell")) {
+                    const allCells = [...document.querySelectorAll(".schedule-cell")];
+                    const targetIndex = allCells.indexOf(el);
+                    const aTarget = Math.floor(targetIndex / totalTurmas);
+                    const tTarget = targetIndex % totalTurmas;
+
+                    window.config[window.activeShift].data[window.activeDay][aTarget][tTarget] = JSON.parse(JSON.stringify(valorCopiado));
+                    el.style.background = "#55efc4";
+                    el.querySelector('strong').innerText = valorCopiado.teacher;
+                }
+            }, { passive: false });
+        });
+    }
+
+    // Eventos de finalização de toque (Geral)
+    document.addEventListener("touchend", function() {
+        if (copiando) {
+            copiando = false;
+            valorCopiado = null;
+            window.saveAuto();
+            window.renderAll();
+        }
+        clearTimeout(timeoutPress);
+    });
+
     window.renderAll = function() {
         document.getElementById("shiftTabs").innerHTML = ["manha", "tarde"].map(s => `<div class="tab ${window.activeShift===s?'active':''}" onclick="window.activeShift='${s}';window.renderAll()">${s.toUpperCase()}</div>`).join("");
         document.getElementById("dayTabs").innerHTML = DIAS.map(d => `<div class="tab ${window.activeDay===d?'active':''}" onclick="window.activeDay='${d}';window.renderAll()">${d}</div>`).join("");
@@ -305,6 +355,8 @@
         
         const legendas = window.config[window.activeShift].legendasPorDia || {};
         document.getElementById("footerLegend").innerText = legendas[window.activeDay] || `⏱️ INTERVALOS...`;
+
+        if(window.isEditing) ativarCopiaPorArraste();
     }
 
     document.getElementById("teacherSearch").oninput = (e) => { searchTerm = e.target.value; window.renderAll(); };
